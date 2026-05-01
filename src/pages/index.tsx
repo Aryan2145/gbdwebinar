@@ -275,11 +275,11 @@ export default function Home() {
                 </div>
                 <h2
                   style={{ fontFamily: "'Playfair Display', serif" }}
-                  className="text-3xl md:text-4xl font-bold text-[#0D3535] mb-3 leading-tight"
+                  className="text-2xl md:text-3xl font-bold text-[#0D3535] mb-3 leading-snug"
                 >
                   Your Business Is Growing, But Is It Still Depending Too Much on You?
                 </h2>
-                <p className="text-gray-500 text-sm font-semibold uppercase tracking-widest mb-3">
+                <p className="text-[#C8A043] text-sm font-semibold uppercase tracking-widest mb-3">
                   Growth by Design Masterclass
                 </p>
                 <p className="text-gray-600 text-sm leading-relaxed mb-5">
