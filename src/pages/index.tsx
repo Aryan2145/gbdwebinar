@@ -1,0 +1,890 @@
+import { useState, useEffect, useRef, FormEvent } from "react";
+import Head from "next/head";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Check, CheckCircle2, Phone, ArrowRight, Loader2,
+  ShieldCheck, Mail, MapPin,
+} from "lucide-react";
+
+function cn(...classes: (string | false | undefined | null)[]) {
+  return classes.filter(Boolean).join(" ");
+}
+
+function FadeIn({
+  children,
+  delay = 0,
+  className = "",
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  className?: string;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-50px" }}
+      transition={{ duration: 0.5, delay }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function loadRazorpay(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if ((window as any).Razorpay) { resolve(true); return; }
+    const s = document.createElement("script");
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.onload = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.body.appendChild(s);
+  });
+}
+
+const inp =
+  "w-full px-4 py-3 rounded-xl bg-white border border-[#D5D2CB] focus:ring-2 focus:ring-[#C8A043] focus:border-[#C8A043] transition-all outline-none text-sm text-gray-800";
+
+const LAYERS_COUNT = 5;
+
+export default function Home() {
+  // ── Payment form ─────────────────────────────────────────────────────────
+  const [payName, setPayName] = useState("");
+  const [payWhatsapp, setPayWhatsapp] = useState("");
+  const [payEmail, setPayEmail] = useState("");
+  const [payCompany, setPayCompany] = useState("");
+  const [payLoading, setPayLoading] = useState(false);
+  const [paySuccess, setPaySuccess] = useState(false);
+  const [payError, setPayError] = useState("");
+
+  // ── Clarity Call form ─────────────────────────────────────────────────────
+  const [callName, setCallName] = useState("");
+  const [callCompany, setCallCompany] = useState("");
+  const [callWhatsapp, setCallWhatsapp] = useState("");
+  const [callEmail, setCallEmail] = useState("");
+  const [callWebsite, setCallWebsite] = useState("");
+  const [callRevenue, setCallRevenue] = useState("");
+  const [callLoading, setCallLoading] = useState(false);
+  const [callSuccess, setCallSuccess] = useState(false);
+  const [callError, setCallError] = useState("");
+
+  // ── Framework layer ───────────────────────────────────────────────────────
+  const [activeLayer, setActiveLayer] = useState<number | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const layerRefs = useRef<(HTMLDivElement | null)[]>(Array(LAYERS_COUNT).fill(null));
+  const ratiosRef = useRef<number[]>(Array(LAYERS_COUNT).fill(0));
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 1024);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile) { setActiveLayer(null); return; }
+    ratiosRef.current = Array(LAYERS_COUNT).fill(0);
+    const observers: IntersectionObserver[] = [];
+    layerRefs.current.forEach((ref, i) => {
+      if (!ref) return;
+      const obs = new IntersectionObserver(
+        ([entry]) => {
+          ratiosRef.current[i] = entry.intersectionRatio;
+          const max = Math.max(...ratiosRef.current);
+          if (max > 0.2) setActiveLayer(ratiosRef.current.indexOf(max));
+        },
+        {
+          threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
+          rootMargin: "-15% 0px -15% 0px",
+        }
+      );
+      obs.observe(ref);
+      observers.push(obs);
+    });
+    return () => observers.forEach((o) => o.disconnect());
+  }, [isMobile]);
+
+  const scrollToApply = (e: React.MouseEvent) => {
+    e.preventDefault();
+    document.getElementById("apply")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const scrollToRegister = (e: React.MouseEvent) => {
+    e.preventDefault();
+    document.getElementById("register")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
+  const handlePaySubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setPayError("");
+    if (!payName.trim()) { setPayError("Please enter your full name."); return; }
+    if (payWhatsapp.replace(/\D/g, "").length < 10) {
+      setPayError("Please enter a valid 10-digit WhatsApp number."); return;
+    }
+    if (!payEmail.includes("@")) { setPayError("Please enter a valid email address."); return; }
+
+    setPayLoading(true);
+    const ok = await loadRazorpay();
+    if (!ok) {
+      setPayError("Could not load payment gateway. Check your internet connection.");
+      setPayLoading(false); return;
+    }
+
+    try {
+      const res = await fetch("/api/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: payName, whatsapp: payWhatsapp, email: payEmail }),
+      });
+      const order = await res.json();
+      if (!res.ok) { setPayError(order.error || "Failed to create order."); setPayLoading(false); return; }
+
+      const rzp = new (window as any).Razorpay({
+        key: order.keyId,
+        amount: order.amount,
+        currency: order.currency,
+        name: "RGB India",
+        description: "Growth by Design — Webinar Registration",
+        order_id: order.orderId,
+        prefill: { name: payName, email: payEmail, contact: payWhatsapp },
+        theme: { color: "#0D3535" },
+        handler: async (response: any) => {
+          const verify = await fetch("/api/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+              name: payName,
+              whatsapp: payWhatsapp,
+              email: payEmail,
+              company: payCompany,
+            }),
+          });
+          const data = await verify.json();
+          if (data.success) { setPaySuccess(true); }
+          else { setPayError("Payment received but verification failed. Call us: 90-330-50-300."); }
+          setPayLoading(false);
+        },
+        modal: { ondismiss: () => setPayLoading(false) },
+      });
+      rzp.on("payment.failed", (r: any) => {
+        setPayError(r.error?.description || "Payment failed. Please try again.");
+        setPayLoading(false);
+      });
+      rzp.open();
+    } catch {
+      setPayError("Something went wrong. Please try again.");
+      setPayLoading(false);
+    }
+  };
+
+  const handleCallSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setCallError("");
+    if (!callName.trim()) { setCallError("Please enter your full name."); return; }
+    if (callWhatsapp.replace(/\D/g, "").length < 10) {
+      setCallError("Please enter a valid WhatsApp number."); return;
+    }
+    if (!callEmail.includes("@")) { setCallError("Please enter a valid email address."); return; }
+    if (!callRevenue) { setCallError("Please select a revenue range."); return; }
+
+    setCallLoading(true);
+    await new Promise((r) => setTimeout(r, 800));
+    setCallSuccess(true);
+    setCallLoading(false);
+  };
+
+  // ── Data ──────────────────────────────────────────────────────────────────
+  const problems = [
+    { title: "Growth feels slower than effort", points: ["Working all day, but growth not matching effort", "Sales not growing as expected", "Margins shrinking while costs keep increasing"] },
+    { title: "Too much pressure on the owner", points: ["Too much dependency on you for decisions", "Most important work still depends on you", "If you step away, work slows down"] },
+    { title: "Team is present, ownership is missing", points: ["Constant follow-ups required to get work done", "Team does not take ownership", "Right people are difficult to find and retain"] },
+    { title: "Market pressure keeps increasing", points: ["Too much competition, discounting, and credit pressure", "Customers demand more, margins reduce further"] },
+    { title: "Cashflow remains under stress", points: ["Payments keep getting delayed", "Cash gets locked in debtors, inventory, and underutilised assets", "Cashflow becomes tight and unpredictable"] },
+    { title: "Life starts taking a back seat", points: ["Very little time for family", "Very little time for personal growth", "Very little time to step back and think"] },
+  ];
+
+  const layers = [
+    { num: "01", title: "Transforming Leadership", desc: "The owner moves from daily doing to higher-value leadership", points: ["Strategic Thinking", "Better Planning", "Mentoring Next-Line Leaders", "Building Stronger Customer And Supplier Relationships", "Adopting Better Technology", "Self, Family, And Contribution To Society"], close: "A stronger leader builds a stronger business" },
+    { num: "02", title: "Transforming Teams", desc: "Teams begin to work with clarity, ownership, and responsibility", points: ["Clear Roles", "Stronger Accountability", "Better Decision-Making At The Right Level", "Smoother Execution", "Reduced Dependency On The Owner"], close: "People take ownership. Work moves with strength" },
+    { num: "03", title: "Transforming Culture", desc: "Culture becomes the force that aligns the entire organisation", points: ["Connects Vision, Strategy, People, Systems, Execution", "Culture Of Growth And Happiness", "Culture Of Contribution And Excellence", "The whole organisation moves in one direction"], close: "The whole organisation starts moving in one direction" },
+    { num: "04", title: "Transforming Systems", desc: "Work begins to move through simple and powerful systems", points: ["Clearer Processes", "Smoother Execution", "Reduced Manual Effort", "Stronger Discipline", "Better Use Of AI And Technology", "Systems And Ecosystem Working Together"], close: "Systems create speed. Ecosystem creates scale" },
+    { num: "05", title: "Transformation Through Data", desc: "Owners start seeing the business with greater clarity", points: ["Revenue And Profit Visibility", "Cashflow Tracking", "Team Performance Dashboards", "Business Movement At A Glance"], close: "Instinct becomes stronger when backed by visible data" },
+  ];
+
+  const outcomes = [
+    { title: "Sales start growing and profitability improves", points: ["Customer acquisition becomes more structured", "Conversions improve", "Margins improve"] },
+    { title: "Your team starts taking ownership", points: ["Leaders start emerging", "Decision-making improves", "People take responsibility"] },
+    { title: "Work starts moving through systems", points: ["Execution becomes smoother", "Follow-ups reduce", "Dependency reduces"] },
+    { title: "Your ecosystem starts supporting growth", points: ["Vendors align better", "Suppliers become reliable", "Relationships strengthen"] },
+    { title: "Cashflow becomes stronger and predictable", points: ["Working capital improves", "Cashflow stabilises", "Financial stress reduces"] },
+    { title: "Operations become stable", points: ["Disruptions reduce", "Planning improves", "Work becomes structured"] },
+    { title: "You get time for what matters", points: ["More time for strategy", "More time for family", "More time to think and grow"] },
+  ];
+
+  return (
+    <>
+      <Head>
+        <title>Growth by Design — Webinar Registration</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content="Join Shri Rakesh Jain's live Growth by Design Masterclass. Register for ₹99. Limited seats." />
+      </Head>
+
+      <div className="min-h-screen bg-[#F8F7F4]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+
+        {/* ── Navbar ── */}
+        <nav className="sticky top-0 z-50 bg-[#0D3535]/95 backdrop-blur-sm border-b border-white/10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+            <div style={{ fontFamily: "'Playfair Display', serif" }} className="text-white font-bold text-lg">
+              RGB <span className="text-[#C8A043]">India</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <a href="tel:9033050300" className="hidden sm:flex items-center gap-1.5 text-white/70 hover:text-white transition-colors text-sm">
+                <Phone className="w-3.5 h-3.5" /> 90-330-50-300
+              </a>
+              <button
+                onClick={scrollToRegister}
+                className="px-4 py-2 bg-[#C8A043] text-white rounded-full font-semibold text-sm hover:bg-[#C8A043]/90 transition-all"
+              >
+                Register Now
+              </button>
+            </div>
+          </div>
+        </nav>
+
+        {/* ── SECTION 0: PAYMENT / REGISTER ── */}
+        <section id="register" className="bg-[#F8F7F4] border-b border-[#D5D2CB] py-10 md:py-14">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid lg:grid-cols-5 gap-8 items-center">
+
+              {/* Left: Info */}
+              <div className="lg:col-span-2">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#C8A043]/15 border border-[#C8A043]/30 mb-4">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#C8A043] animate-pulse" />
+                  <span className="text-xs font-bold text-[#C8A043] tracking-wider uppercase">Live Webinar</span>
+                </div>
+                <h2
+                  style={{ fontFamily: "'Playfair Display', serif" }}
+                  className="text-3xl md:text-4xl font-bold text-[#0D3535] mb-3 leading-tight"
+                >
+                  Growth by Design<br />Masterclass
+                </h2>
+                <p className="text-gray-600 text-sm leading-relaxed mb-5">
+                  A live session with Shri Rakesh Jain on building a stronger, more profitable business — with clarity, capable teams, and smart systems.
+                </p>
+                <div className="space-y-2.5">
+                  {[
+                    "Live session with Shri Rakesh Jain",
+                    "The 5-layer Growth by Design framework",
+                    "Real strategies for Indian family businesses",
+                    "WhatsApp access details sent after registration",
+                  ].map((point, i) => (
+                    <div key={i} className="flex items-start gap-2.5">
+                      <div className="w-5 h-5 rounded-full bg-[#C8A043]/15 flex items-center justify-center shrink-0 mt-0.5">
+                        <Check className="w-3 h-3 text-[#C8A043]" />
+                      </div>
+                      <p className="text-sm text-gray-700 leading-snug">{point}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right: Form */}
+              <div className="lg:col-span-3">
+                <div className="bg-white rounded-2xl border border-[#D5D2CB] shadow-sm p-6 md:p-8">
+                  <AnimatePresence mode="wait">
+                    {paySuccess ? (
+                      <motion.div
+                        key="success"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="text-center py-8"
+                      >
+                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <CheckCircle2 className="w-8 h-8 text-green-600" />
+                        </div>
+                        <h3
+                          style={{ fontFamily: "'Playfair Display', serif" }}
+                          className="text-2xl font-bold text-[#0D3535] mb-2"
+                        >
+                          You&apos;re Registered!
+                        </h3>
+                        <p className="text-gray-600 text-sm mb-1">Your payment of <strong>₹99</strong> is confirmed.</p>
+                        <p className="text-gray-600 text-sm mb-6">
+                          Webinar access details will be sent to your WhatsApp number shortly.
+                        </p>
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-50 border border-green-200 text-green-700 text-xs font-semibold">
+                          <ShieldCheck className="w-4 h-4" /> Payment Verified &amp; Confirmed
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                        <div className="mb-5">
+                          <div className="flex items-center justify-between mb-1">
+                            <h3 className="text-xl font-bold text-[#0D3535]">Register Now</h3>
+                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C8A043]/10 border border-[#C8A043]/20">
+                              <span className="text-[#C8A043] font-black text-sm">₹99</span>
+                              <span className="text-gray-500 text-xs">only</span>
+                            </div>
+                          </div>
+                          <p className="text-gray-500 text-xs">Secure payment via Razorpay. Details sent on WhatsApp.</p>
+                        </div>
+
+                        <form onSubmit={handlePaySubmit} className="space-y-4">
+                          <div className="grid sm:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                                Full Name <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                value={payName}
+                                onChange={(e) => setPayName(e.target.value)}
+                                className={inp}
+                                placeholder="Your full name"
+                                autoComplete="name"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">Company Name</label>
+                              <input
+                                value={payCompany}
+                                onChange={(e) => setPayCompany(e.target.value)}
+                                className={inp}
+                                placeholder="Your company (optional)"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid sm:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                                WhatsApp Number <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                value={payWhatsapp}
+                                onChange={(e) => setPayWhatsapp(e.target.value)}
+                                className={inp}
+                                placeholder="+91 90000 00000"
+                                inputMode="tel"
+                                autoComplete="tel"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                                Email Address <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                value={payEmail}
+                                onChange={(e) => setPayEmail(e.target.value)}
+                                type="email"
+                                className={inp}
+                                placeholder="you@company.com"
+                                autoComplete="email"
+                              />
+                            </div>
+                          </div>
+
+                          {payError && (
+                            <p className="text-red-500 text-xs bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                              {payError}
+                            </p>
+                          )}
+
+                          <button
+                            type="submit"
+                            disabled={payLoading}
+                            className="w-full py-3.5 bg-[#0D3535] text-white rounded-xl font-bold text-base hover:bg-[#0D3535]/90 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0 shadow-md flex items-center justify-center gap-2"
+                          >
+                            {payLoading ? (
+                              <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+                            ) : (
+                              <>Pay ₹99 &amp; Register <ArrowRight className="w-4 h-4" /></>
+                            )}
+                          </button>
+
+                          <div className="flex items-center justify-center gap-4 pt-1">
+                            <div className="flex items-center gap-1.5 text-gray-400 text-xs">
+                              <ShieldCheck className="w-3.5 h-3.5" /> Secure payment
+                            </div>
+                            <div className="w-px h-3 bg-gray-200" />
+                            <div className="text-gray-400 text-xs">Powered by Razorpay</div>
+                          </div>
+                        </form>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        {/* ── SECTION 1: HERO ── */}
+        <section className="relative pt-16 pb-0 bg-[#0D3535] overflow-hidden">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid lg:grid-cols-2 items-end gap-0">
+
+              {/* Left */}
+              <FadeIn className="py-8 lg:py-10 pr-0 lg:pr-8">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 mb-4">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#C8A043] animate-pulse" />
+                  <span className="text-xs font-semibold text-white/90 tracking-wider uppercase">
+                    A Premium 1-Year Business Transformation Program
+                  </span>
+                </div>
+
+                <h1
+                  style={{ fontFamily: "'Playfair Display', serif" }}
+                  className="text-5xl md:text-6xl font-bold text-white leading-tight mb-3"
+                >
+                  Growth by <span className="text-[#C8A043]">Design</span>
+                </h1>
+                <p
+                  style={{ fontFamily: "'Playfair Display', serif" }}
+                  className="text-2xl lg:text-3xl font-semibold text-[#C8A043] mb-5 leading-tight"
+                >
+                  Achieve 10X Growth with 10% Effort
+                </p>
+
+                <p className="text-white/90 text-base md:text-lg leading-relaxed mb-3 max-w-xl">
+                  A 1-year program for established family businesses ready to achieve Growth in Sales, Profits,
+                  Cashflow, Respect, and Enhanced Business Valuation — with Happiness.
+                </p>
+                <p className="text-white/75 text-sm md:text-base leading-relaxed mb-7 max-w-xl">
+                  Move towards achieving 10X Growth with Focused Effort while Creating Time to Live and Celebrate
+                  a Holistic Life by Design.
+                </p>
+
+                <p className="text-white/50 text-xs font-bold uppercase tracking-widest mb-3">
+                  How we will achieve 10X growth together
+                </p>
+                <div className="flex flex-wrap gap-2 mb-7">
+                  {["Right Philosophy", "Bold Vision", "Simplified Strategy", "Aligned Teams", "AI-Driven Systems", "Data-Backed Decisions"].map((p) => (
+                    <span
+                      key={p}
+                      className="px-3 py-1.5 rounded-full border border-[#C8A043]/40 bg-[#C8A043]/10 text-[#C8A043] text-xs font-semibold"
+                    >
+                      {p}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-start gap-4">
+                  <button
+                    onClick={scrollToRegister}
+                    className="inline-flex items-center gap-2 px-7 py-3.5 bg-[#C8A043] text-white rounded-full font-bold text-base shadow-lg hover:bg-[#C8A043]/90 hover:-translate-y-0.5 transition-all duration-200"
+                  >
+                    Register Now <ArrowRight className="w-4 h-4" />
+                  </button>
+                  <a
+                    href="tel:9033050300"
+                    className="inline-flex items-center gap-2 text-white/70 hover:text-white transition-colors text-sm font-medium self-center"
+                  >
+                    <Phone className="w-4 h-4" /> 90-330-50-300
+                  </a>
+                </div>
+              </FadeIn>
+
+              {/* Right: Founder photo */}
+              <FadeIn delay={0.15} className="flex justify-center lg:justify-end items-end pt-4 lg:pt-0">
+                <div className="relative w-full max-w-sm lg:max-w-md xl:max-w-lg">
+                  <div className="absolute -inset-8 bg-[#C8A043]/10 rounded-full blur-3xl opacity-60 pointer-events-none" />
+                  <img
+                    src="/founder.png"
+                    alt="Shri Rakesh Jain — Founder, RGB Business Growth Consulting"
+                    className="relative z-10 w-full h-auto object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
+                  />
+                  <div className="absolute bottom-4 left-3 right-3 z-20 bg-[#0D3535]/85 backdrop-blur-md border border-white/20 rounded-2xl px-4 py-3 text-center">
+                    <p className="text-[#C8A043] text-[11px] font-bold tracking-widest uppercase mb-1">Business Guru</p>
+                    <p
+                      style={{ fontFamily: "'Playfair Display', serif" }}
+                      className="text-white font-bold text-lg leading-tight"
+                    >
+                      Shri Rakesh Jain
+                    </p>
+                    <p className="text-white/75 text-xs mt-1 leading-snug">
+                      Founder, RGB Business Growth Consulting
+                    </p>
+                  </div>
+                </div>
+              </FadeIn>
+
+            </div>
+          </div>
+        </section>
+
+        {/* ── SECTION 2: PROBLEMS ── */}
+        <section className="py-12 bg-[#F8F7F4]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <FadeIn className="text-center mb-8">
+              <p className="text-[#C8A043] text-xs font-bold uppercase tracking-widest mb-2">
+                What brings business owners to us
+              </p>
+              <h2
+                style={{ fontFamily: "'Playfair Display', serif" }}
+                className="text-3xl md:text-4xl font-bold text-[#0D3535]"
+              >
+                What most business owners experience
+              </h2>
+            </FadeIn>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {problems.map((problem, i) => (
+                <FadeIn key={i} delay={0.06 * i}>
+                  <div className="bg-[#EAE8E3] border border-[#D3D0C9] rounded-2xl p-5 h-full hover:shadow-md hover:border-[#C8A043]/40 transition-all duration-200">
+                    <h3 className="font-bold text-[#0D3535] text-sm mb-3 leading-snug">{problem.title}</h3>
+                    <ul className="space-y-1.5">
+                      {problem.points.map((pt, j) => (
+                        <li key={j} className="flex items-start gap-2 text-xs text-gray-700 leading-relaxed">
+                          <span className="w-1 h-1 rounded-full bg-[#C8A043] shrink-0 mt-1.5" />
+                          {pt}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </FadeIn>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── SECTION 3: FRAMEWORK ── */}
+        <section className="py-12 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <FadeIn className="text-center mb-8">
+              <p className="text-[#C8A043] text-xs font-bold uppercase tracking-widest mb-2">The Framework</p>
+              <h2
+                style={{ fontFamily: "'Playfair Display', serif" }}
+                className="text-3xl md:text-4xl font-bold text-[#0D3535] mb-2"
+              >
+                The Growth by Design Model
+              </h2>
+              <p className="text-base font-semibold text-gray-800 max-w-2xl mx-auto mb-1">
+                Everything improves when these five improve together
+              </p>
+              <p className="text-sm text-gray-600 max-w-2xl mx-auto">
+                A Structured 12-Month Journey across Five Integrated Layers designed to align Vision, Strategy,
+                People, Systems, and Decisions.
+              </p>
+            </FadeIn>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              {layers.map((layer, i) => {
+                const isActive = activeLayer === i;
+                return (
+                  <FadeIn key={i} delay={0.08 * i} className="h-full">
+                    <div
+                      ref={(el) => { layerRefs.current[i] = el; }}
+                      onMouseEnter={() => { if (!isMobile) setActiveLayer(i); }}
+                      onMouseLeave={() => { if (!isMobile) setActiveLayer(null); }}
+                      className={cn(
+                        "group rounded-2xl p-5 h-full flex flex-col cursor-default border transition-all duration-500",
+                        isActive
+                          ? "bg-[#0D3535] border-[#0D3535] shadow-lg"
+                          : "bg-[#E8E5DF] border-[#CCCAC3] hover:bg-[#0D3535] hover:border-[#0D3535] hover:shadow-lg"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-xs font-black text-[#C8A043]">{layer.num}</span>
+                        <div className={cn(
+                          "h-px flex-1 transition-colors duration-500",
+                          isActive ? "bg-[#C8A043]/50" : "bg-[#C8A043]/30 group-hover:bg-[#C8A043]/50"
+                        )} />
+                      </div>
+                      <h3 className={cn(
+                        "font-bold text-sm leading-snug mb-1.5 transition-colors duration-500",
+                        isActive ? "text-white" : "text-[#0D3535] group-hover:text-white"
+                      )}>
+                        {layer.title}
+                      </h3>
+                      <p className={cn(
+                        "text-xs mb-4 leading-relaxed transition-colors duration-500",
+                        isActive ? "text-white/65" : "text-gray-600 group-hover:text-white/65"
+                      )}>
+                        {layer.desc}
+                      </p>
+                      <ul className="space-y-1.5 flex-1 mb-4">
+                        {layer.points.map((pt, j) => (
+                          <li key={j} className={cn(
+                            "flex items-start gap-1.5 text-xs leading-relaxed transition-colors duration-500",
+                            isActive ? "text-white/80" : "text-gray-700 group-hover:text-white/80"
+                          )}>
+                            <Check className="w-3 h-3 text-[#C8A043] shrink-0 mt-0.5" />
+                            {pt}
+                          </li>
+                        ))}
+                      </ul>
+                      <div className={cn(
+                        "border-t pt-3 transition-colors duration-500",
+                        isActive ? "border-[#C8A043]/30" : "border-[#BDBAB2] group-hover:border-[#C8A043]/30"
+                      )}>
+                        <p className="text-[10px] font-bold uppercase tracking-widest mb-1 text-[#C8A043]">
+                          The outcome
+                        </p>
+                        <p className={cn(
+                          "text-sm font-semibold leading-snug transition-colors duration-500",
+                          isActive ? "text-white" : "text-[#0D3535] group-hover:text-white"
+                        )}>
+                          {layer.close}
+                        </p>
+                      </div>
+                    </div>
+                  </FadeIn>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* ── SECTION 4: WHY IT WORKS ── */}
+        <section className="py-12 bg-[#F8F7F4]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <FadeIn className="text-center mb-8">
+              <p className="text-[#C8A043] text-xs font-bold uppercase tracking-widest mb-2">The difference</p>
+              <h2
+                style={{ fontFamily: "'Playfair Display', serif" }}
+                className="text-3xl md:text-4xl font-bold text-[#0D3535] mb-2"
+              >
+                Why Growth by Design works
+              </h2>
+              <p className="text-sm text-gray-700 max-w-xl mx-auto">
+                Growth by Design brings together{" "}
+                <strong className="text-[#0D3535]">Strong Foundations</strong> and{" "}
+                <strong className="text-[#0D3535]">Modern Intelligence</strong>
+              </p>
+            </FadeIn>
+
+            <div className="grid md:grid-cols-2 gap-5 mb-5">
+              <FadeIn delay={0.1}>
+                <div className="bg-[#EAE8E3] border border-[#D3D0C9] rounded-2xl p-6 h-full">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-[#0D3535]/10 border border-[#0D3535]/20 flex items-center justify-center shrink-0">
+                      <span className="text-[#0D3535] font-bold text-base">॥</span>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-[#0D3535] text-base leading-snug">
+                        Ancient Indian Business Wisdom
+                      </h3>
+                      <p className="text-xs text-gray-600 mt-1">
+                        Built on principles that have created strong and respected businesses for generations
+                      </p>
+                    </div>
+                  </div>
+                  <ul className="space-y-2 mb-5">
+                    {["Trust", "Commitment", "Discipline", "Long-term thinking", "Care for all stakeholders", "Respect through contribution"].map((pt) => (
+                      <li key={pt} className="flex items-center gap-2 text-sm text-gray-800">
+                        <span className="w-1 h-1 rounded-full bg-[#C8A043] shrink-0" />
+                        {pt}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-sm text-[#0D3535] font-semibold border-t border-[#C8C5BE] pt-4 leading-relaxed">
+                    Ancient Indian Business Wisdom builds the foundation for strong and stable growth
+                  </p>
+                </div>
+              </FadeIn>
+
+              <FadeIn delay={0.2}>
+                <div className="bg-[#EAE8E3] border border-[#D3D0C9] rounded-2xl p-6 h-full">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-[#C8A043]/15 border border-[#C8A043]/30 flex items-center justify-center shrink-0">
+                      <span className="text-[#C8A043] font-bold text-base">AI</span>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-[#0D3535] text-base leading-snug">
+                        Latest AI-Driven Tools and Systems
+                      </h3>
+                      <p className="text-xs text-gray-600 mt-1">Built to improve speed, visibility, and execution</p>
+                    </div>
+                  </div>
+                  <ul className="space-y-2 mb-5">
+                    {["Faster execution", "Reduced manual effort", "Better visibility", "Sharper decisions", "Better planning", "Intelligent automation wherever useful"].map((pt) => (
+                      <li key={pt} className="flex items-center gap-2 text-sm text-gray-800">
+                        <span className="w-1 h-1 rounded-full bg-[#C8A043] shrink-0" />
+                        {pt}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-sm text-[#0D3535] font-semibold border-t border-[#C8C5BE] pt-4 leading-relaxed">
+                    Latest AI-Driven Tools and Systems strengthen execution and improve business speed
+                  </p>
+                </div>
+              </FadeIn>
+            </div>
+
+            <FadeIn delay={0.3}>
+              <div className="bg-[#0D3535] rounded-2xl px-8 py-6 text-center">
+                <p className="text-[#C8A043] text-xs font-bold uppercase tracking-widest mb-3">Together</p>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-2 mb-4 max-w-3xl mx-auto text-left sm:text-center">
+                  {[
+                    "Strong philosophy gives direction",
+                    "Modern tools improve execution",
+                    "Systems and ecosystem start working together",
+                    "Growth moves with greater clarity, speed, and focused effort",
+                  ].map((line, i) => (
+                    <div key={i} className="flex items-start sm:flex-col sm:items-center gap-2">
+                      <span className="w-1 h-1 rounded-full bg-[#C8A043] shrink-0 mt-2 sm:mt-0 sm:mb-1" />
+                      <p className="text-white/85 text-sm leading-relaxed">{line}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-white font-semibold text-base mt-4 border-t border-white/10 pt-4">
+                  Strong Foundations and Modern Intelligence create powerful growth
+                </p>
+              </div>
+            </FadeIn>
+          </div>
+        </section>
+
+        {/* ── SECTION 5: OUTCOMES ── */}
+        <section className="py-12 bg-[#0D3535]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <FadeIn className="text-center mb-8">
+              <p className="text-[#C8A043] text-xs font-bold uppercase tracking-widest mb-2">Program outcomes</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-2">
+                What you will experience with Growth by Design
+              </h2>
+              <p className="text-white/75 text-sm max-w-2xl mx-auto">
+                As you move through the program and as the layers start aligning — your business and your role
+                begin to transform.
+              </p>
+            </FadeIn>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
+              {outcomes.map((outcome, i) => (
+                <FadeIn key={i} delay={0.07 * i}>
+                  <div className="bg-white/[0.08] border border-white/[0.15] rounded-2xl p-5 hover:bg-white/[0.12] hover:border-white/[0.25] transition-all duration-200 h-full">
+                    <h3 className="font-semibold text-white text-sm leading-snug mb-3">{outcome.title}</h3>
+                    <ul className="space-y-1.5">
+                      {outcome.points.map((pt, j) => (
+                        <li key={j} className="flex items-start gap-2 text-xs text-white/75 leading-relaxed">
+                          <span className="w-1 h-1 rounded-full bg-[#C8A043] shrink-0 mt-1.5" />
+                          {pt}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </FadeIn>
+              ))}
+            </div>
+
+            <FadeIn delay={0.5}>
+              <p className="text-center text-white/90 text-base md:text-lg font-medium max-w-3xl mx-auto border-t border-white/10 pt-6">
+                Your business becomes stronger. Your effort becomes focused. Your life becomes more balanced.
+              </p>
+            </FadeIn>
+          </div>
+        </section>
+
+        {/* ── SECTION 6: FINAL CTA ── */}
+        <section id="apply" className="py-16 bg-[#0D3535]">
+          <div className="max-w-2xl mx-auto px-4 text-center">
+            <FadeIn>
+              <p className="text-[#C8A043] text-xs font-bold uppercase tracking-widest mb-3">Limited Seats</p>
+              <h2
+                style={{ fontFamily: "'Playfair Display', serif" }}
+                className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight"
+              >
+                Ready to transform your business?
+              </h2>
+              <p className="text-white/70 text-sm mb-8 max-w-md mx-auto leading-relaxed">
+                Join the Growth by Design Masterclass with Shri Rakesh Jain. Only ₹99.
+              </p>
+              <button
+                onClick={scrollToRegister}
+                className="inline-flex items-center gap-2 px-8 py-4 bg-[#C8A043] text-white rounded-full font-bold text-base shadow-lg hover:bg-[#C8A043]/90 hover:-translate-y-0.5 transition-all duration-200"
+              >
+                Register Now <ArrowRight className="w-4 h-4" />
+              </button>
+              <p className="text-white/40 text-xs mt-6">
+                Or call us at{" "}
+                <a href="tel:9033050300" className="text-[#C8A043] hover:text-white transition-colors">
+                  90-330-50-300
+                </a>
+              </p>
+            </FadeIn>
+          </div>
+        </section>
+
+        {/* ── FOOTER ── */}
+        <footer className="bg-[#0D3535] text-white py-16 border-t border-white/10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+
+              <div className="space-y-6">
+                <div style={{ fontFamily: "'Playfair Display', serif" }} className="text-2xl font-bold text-white">
+                  RGB{" "}
+                  <span className="block text-xs font-sans text-[#C8A043] uppercase tracking-wider mt-1">
+                    Business Growth Consulting
+                  </span>
+                </div>
+                <p className="text-white/70 max-w-sm leading-relaxed text-sm">
+                  We guide growth-minded business leaders in turning ambition into structured,
+                  self-sustaining, and purposeful organizations.
+                </p>
+              </div>
+
+              <div className="space-y-6">
+                <h4
+                  style={{ fontFamily: "'Playfair Display', serif" }}
+                  className="text-lg font-semibold text-white"
+                >
+                  Quick Links
+                </h4>
+                <ul className="space-y-3 text-white/70 text-sm">
+                  <li><a href="https://rgbindia.com/" className="hover:text-[#C8A043] transition-colors">Home</a></li>
+                  <li><a href="https://rgbindia.com/about-us/" className="hover:text-[#C8A043] transition-colors">About RGB India</a></li>
+                  <li><a href="https://rgbindia.com/programs/" className="hover:text-[#C8A043] transition-colors">Programs</a></li>
+                  <li>
+                    <button onClick={scrollToRegister} className="hover:text-[#C8A043] transition-colors">
+                      Register for Webinar
+                    </button>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="space-y-6">
+                <h4
+                  style={{ fontFamily: "'Playfair Display', serif" }}
+                  className="text-lg font-semibold text-white"
+                >
+                  Get in Touch
+                </h4>
+                <ul className="space-y-4 text-white/70 text-sm">
+                  <li className="flex items-start gap-3">
+                    <Mail className="w-5 h-5 text-[#C8A043] shrink-0 mt-0.5" />
+                    <a href="mailto:connect@rgbindia.com" className="hover:text-white transition-colors">
+                      connect@rgbindia.com
+                    </a>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Phone className="w-5 h-5 text-[#C8A043] shrink-0 mt-0.5" />
+                    <a href="tel:+919033050300" className="hover:text-white transition-colors">
+                      +91 90330 50300
+                    </a>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <MapPin className="w-5 h-5 text-[#C8A043] shrink-0 mt-0.5" />
+                    <span>India&apos;s Trusted Voice in Family Business Transformation</span>
+                  </li>
+                </ul>
+              </div>
+
+            </div>
+
+            <div className="mt-16 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-white/50">
+              <p>© {new Date().getFullYear()} RGB India · Business Growth Consulting</p>
+              <a href="https://rgbindia.com" className="hover:text-white transition-colors">rgbindia.com</a>
+            </div>
+          </div>
+        </footer>
+
+      </div>
+    </>
+  );
+}
