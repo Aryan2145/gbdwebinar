@@ -77,9 +77,6 @@ export default function AdminPage() {
         <Head><title>Admin Login — RGB India</title></Head>
         <div className="min-h-screen bg-[#0D3535] flex items-center justify-center px-4"
           style={{ fontFamily: "'DM Sans', sans-serif" }}>
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-          <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
 
           <div className="w-full max-w-sm">
             <div className="text-center mb-8">
@@ -123,8 +120,6 @@ export default function AdminPage() {
     <>
       <Head><title>Admin Dashboard — RGB India</title></Head>
       <div className="min-h-screen bg-[#F8F7F4]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
 
         {/* Header */}
         <div className="bg-[#0D3535] px-4 py-4 shadow-md">
