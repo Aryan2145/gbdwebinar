@@ -273,6 +273,9 @@ export default function Home() {
                   <span className="w-1.5 h-1.5 rounded-full bg-[#C8A043] animate-pulse" />
                   <span className="text-xs font-bold text-[#C8A043] tracking-wider uppercase">Live Webinar</span>
                 </div>
+                <p className="text-gray-700 text-base font-semibold leading-snug mb-2">
+                  Your Business Is Growing, But Is It Still Depending Too Much on You?
+                </p>
                 <h2
                   style={{ fontFamily: "'Playfair Display', serif" }}
                   className="text-3xl md:text-4xl font-bold text-[#0D3535] mb-3 leading-tight"
@@ -280,21 +283,20 @@ export default function Home() {
                   Growth by Design<br />Masterclass
                 </h2>
                 <p className="text-gray-600 text-sm leading-relaxed mb-5">
-                  A live session with Shri Rakesh Jain on building a stronger, more profitable business — with clarity, capable teams, and smart systems.
+                  A 60-minute live session with Shri Rakesh Jain for business owners who want stronger revenue, better cash flow, responsible teams, reduced owner dependency, and more time with better control.
                 </p>
-                <div className="space-y-2.5">
-                  {[
-                    "Live session with Shri Rakesh Jain",
-                    "The 5-layer Growth by Design framework",
-                    "Real strategies for Indian family businesses",
-                    "WhatsApp access details sent after registration",
-                  ].map((point, i) => (
-                    <div key={i} className="flex items-start gap-2.5">
-                      <div className="w-5 h-5 rounded-full bg-[#C8A043]/15 flex items-center justify-center shrink-0 mt-0.5">
-                        <Check className="w-3 h-3 text-[#C8A043]" />
-                      </div>
-                      <p className="text-sm text-gray-700 leading-snug">{point}</p>
-                    </div>
+                <div className="flex flex-wrap gap-2">
+                  {["Sunday, 10 May 2026", "11:00 AM – 12:00 PM IST", "₹99 only"].map((item, i) => (
+                    <span
+                      key={i}
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold border ${
+                        i === 2
+                          ? "bg-[#C8A043] text-[#0D3535] border-[#C8A043]"
+                          : "bg-[#0D3535]/8 text-[#0D3535] border-[#0D3535]/20"
+                      }`}
+                    >
+                      {item}
+                    </span>
                   ))}
                 </div>
               </div>
