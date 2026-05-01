@@ -366,7 +366,7 @@ export default function Home() {
                         >
                           You&apos;re Registered!
                         </h3>
-                        <p className="text-white/70 text-sm mb-1">Your payment of <strong className="text-white">₹99</strong> is confirmed.</p>
+                        <p className="text-white/70 text-sm mb-1">Your payment of <strong className="text-white">₹{(payQuantity * 99).toLocaleString("en-IN")}</strong> is confirmed.</p>
                         <p className="text-white/70 text-sm mb-6">
                           Webinar access details will be sent to your WhatsApp number shortly.
                         </p>
