@@ -337,9 +337,9 @@ export default function Home() {
                             >
                               Register Now
                             </h3>
-                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C8A043]/20 border border-[#C8A043]/40">
-                              <span className="text-[#C8A043] font-black text-sm">₹99</span>
-                              <span className="text-white/60 text-xs">only</span>
+                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C8A043]">
+                              <span className="text-white font-black text-sm">₹99</span>
+                              <span className="text-white/80 text-xs">only</span>
                             </div>
                           </div>
                           <p className="text-white/60 text-xs">Secure payment via Razorpay. Details sent on WhatsApp.</p>
