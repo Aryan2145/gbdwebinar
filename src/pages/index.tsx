@@ -223,13 +223,13 @@ export default function Home() {
   ];
 
   const outcomes = [
-    { title: "Sales start growing and profitability improves", points: ["Customer acquisition becomes more structured", "Conversions improve", "Margins improve"] },
-    { title: "Your team starts taking ownership", points: ["Leaders start emerging", "Decision-making improves", "People take responsibility"] },
-    { title: "Work starts moving through systems", points: ["Execution becomes smoother", "Follow-ups reduce", "Dependency reduces"] },
-    { title: "Your ecosystem starts supporting growth", points: ["Vendors align better", "Suppliers become reliable", "Relationships strengthen"] },
-    { title: "Cashflow becomes stronger and predictable", points: ["Working capital improves", "Cashflow stabilises", "Financial stress reduces"] },
-    { title: "Operations become stable", points: ["Disruptions reduce", "Planning improves", "Work becomes structured"] },
-    { title: "You get time for what matters", points: ["More time for strategy", "More time for family", "More time to think and grow"] },
+    { title: "Why growth stalls even when effort is high", points: ["The hidden bottlenecks that limit scale", "Why working harder is not always the answer"] },
+    { title: "Why the owner becomes the biggest constraint", points: ["How dependency on you slows the business", "What changes when you step back strategically"] },
+    { title: "The 5-layer Growth by Design framework", points: ["How each layer contributes to growth", "Why all five must work together"] },
+    { title: "How teams can take genuine ownership", points: ["What prevents ownership today", "The shift that makes teams self-driven"] },
+    { title: "Why cashflow stays under stress", points: ["Where money gets locked", "How to improve predictability"] },
+    { title: "How AI and systems can reduce your effort", points: ["Where to start with systems", "How smart tools reduce your load"] },
+    { title: "What comes after this masterclass", points: ["The full Growth by Design program", "How to assess if it is right for you"] },
   ];
 
   return (
@@ -249,8 +249,8 @@ export default function Home() {
               RGB <span className="text-[#C8A043]">India</span>
             </div>
             <div className="flex items-center gap-3">
-              <a href="tel:9033050300" className="hidden sm:flex items-center gap-1.5 text-white/70 hover:text-white transition-colors text-sm">
-                <Phone className="w-3.5 h-3.5" /> 90-330-50-300
+              <a href="tel:+917878038514" className="hidden sm:flex items-center gap-1.5 text-white/70 hover:text-white transition-colors text-sm">
+                <Phone className="w-3.5 h-3.5" /> 78780 38514
               </a>
               <button
                 onClick={scrollToRegister}
@@ -338,8 +338,8 @@ export default function Home() {
                               Register Now
                             </h3>
                             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C8A043]">
-                              <span className="text-white font-black text-sm">₹99</span>
-                              <span className="text-white/80 text-xs">only</span>
+                              <span className="text-[#0D3535] font-black text-sm">₹99</span>
+                              <span className="text-[#0D3535]/80 text-xs font-semibold">only</span>
                             </div>
                           </div>
                           <p className="text-white/60 text-xs">Secure payment via Razorpay. Details sent on WhatsApp.</p>
@@ -472,7 +472,7 @@ export default function Home() {
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 mb-4">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#C8A043] animate-pulse" />
                   <span className="text-xs font-semibold text-white/90 tracking-wider uppercase">
-                    A Premium 1-Year Business Transformation Program
+                    A 60-Minute Masterclass for Family Business Owners
                   </span>
                 </div>
 
@@ -486,22 +486,22 @@ export default function Home() {
                   style={{ fontFamily: "'Playfair Display', serif" }}
                   className="text-2xl lg:text-3xl font-semibold text-[#C8A043] mb-5 leading-tight"
                 >
-                  Achieve 10X Growth with 10% Effort
+                  Free Your Business from Owner Dependency
                 </p>
 
                 <p className="text-white/90 text-base md:text-lg leading-relaxed mb-3 max-w-xl">
-                  A 1-year program for established family businesses ready to achieve Growth in Sales, Profits,
-                  Cashflow, Respect, and Enhanced Business Valuation — with Happiness.
+                  A 60-minute live session on building a business that grows without depending entirely on you —
+                  with clarity, capable teams, and smart systems.
                 </p>
                 <p className="text-white/75 text-sm md:text-base leading-relaxed mb-7 max-w-xl">
-                  Move towards achieving 10X Growth with Focused Effort while Creating Time to Live and Celebrate
-                  a Holistic Life by Design.
+                  Clear frameworks, real strategies, and actionable thinking — designed for established Indian
+                  family businesses.
                 </p>
 
                 <p className="text-white/50 text-xs font-bold uppercase tracking-widest mb-3">
-                  How we will achieve 10X growth together
+                  What Makes Growth by Design Powerful
                 </p>
-                <div className="flex flex-wrap gap-2 mb-7">
+                <div className="flex flex-wrap gap-2 mb-3">
                   {["Right Philosophy", "Bold Vision", "Simplified Strategy", "Aligned Teams", "AI-Driven Systems", "Data-Backed Decisions"].map((p) => (
                     <span
                       key={p}
@@ -511,6 +511,9 @@ export default function Home() {
                     </span>
                   ))}
                 </div>
+                <p className="text-white/45 text-xs leading-relaxed mb-7 max-w-md">
+                  This masterclass introduces these ideas. The full program goes deeper.
+                </p>
 
                 <div className="flex flex-col sm:flex-row items-start gap-4">
                   <button
@@ -520,10 +523,10 @@ export default function Home() {
                     Register Now <ArrowRight className="w-4 h-4" />
                   </button>
                   <a
-                    href="tel:9033050300"
+                    href="tel:+917878038514"
                     className="inline-flex items-center gap-2 text-white/70 hover:text-white transition-colors text-sm font-medium self-center"
                   >
-                    <Phone className="w-4 h-4" /> 90-330-50-300
+                    <Phone className="w-4 h-4" /> 78780 38514
                   </a>
                 </div>
               </FadeIn>
@@ -603,15 +606,15 @@ export default function Home() {
                 The Growth by Design Model
               </h2>
               <p className="text-base font-semibold text-gray-800 max-w-2xl mx-auto mb-1">
-                Everything improves when these five improve together
+                Five layers that must work together for a business to grow by design
               </p>
               <p className="text-sm text-gray-600 max-w-2xl mx-auto">
-                A Structured 12-Month Journey across Five Integrated Layers designed to align Vision, Strategy,
-                People, Systems, and Decisions.
+                In this masterclass, we will walk through each layer and show how they connect to create
+                a self-sustaining, growing business.
               </p>
             </FadeIn>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
               {layers.map((layer, i) => {
                 const isActive = activeLayer === i;
                 return (
@@ -641,22 +644,11 @@ export default function Home() {
                         {layer.title}
                       </h3>
                       <p className={cn(
-                        "text-xs mb-4 leading-relaxed transition-colors duration-500",
+                        "text-xs flex-1 mb-4 leading-relaxed transition-colors duration-500",
                         isActive ? "text-white/65" : "text-gray-600 group-hover:text-white/65"
                       )}>
                         {layer.desc}
                       </p>
-                      <ul className="space-y-1.5 flex-1 mb-4">
-                        {layer.points.map((pt, j) => (
-                          <li key={j} className={cn(
-                            "flex items-start gap-1.5 text-xs leading-relaxed transition-colors duration-500",
-                            isActive ? "text-white/80" : "text-gray-700 group-hover:text-white/80"
-                          )}>
-                            <Check className="w-3 h-3 text-[#C8A043] shrink-0 mt-0.5" />
-                            {pt}
-                          </li>
-                        ))}
-                      </ul>
                       <div className={cn(
                         "border-t pt-3 transition-colors duration-500",
                         isActive ? "border-[#C8A043]/30" : "border-[#BDBAB2] group-hover:border-[#C8A043]/30"
@@ -676,6 +668,12 @@ export default function Home() {
                 );
               })}
             </div>
+            <FadeIn delay={0.5}>
+              <p className="text-center text-gray-600 text-sm max-w-2xl mx-auto border-t border-[#D5D2CB] pt-5">
+                In this masterclass, we will introduce how these five layers work together — and what it takes
+                to get all of them moving in the right direction.
+              </p>
+            </FadeIn>
           </div>
         </section>
 
@@ -688,12 +686,11 @@ export default function Home() {
                 style={{ fontFamily: "'Playfair Display', serif" }}
                 className="text-3xl md:text-4xl font-bold text-[#0D3535] mb-2"
               >
-                Why Growth by Design works
+                Strong Foundations. Modern Intelligence.
               </h2>
               <p className="text-sm text-gray-700 max-w-xl mx-auto">
-                Growth by Design brings together{" "}
-                <strong className="text-[#0D3535]">Strong Foundations</strong> and{" "}
-                <strong className="text-[#0D3535]">Modern Intelligence</strong>
+                Growth by Design combines timeless Indian business wisdom with the best of modern tools and AI —
+                so your growth is both strong and sustainable.
               </p>
             </FadeIn>
 
@@ -714,7 +711,7 @@ export default function Home() {
                     </div>
                   </div>
                   <ul className="space-y-2 mb-5">
-                    {["Trust", "Commitment", "Discipline", "Long-term thinking", "Care for all stakeholders", "Respect through contribution"].map((pt) => (
+                    {["Trust and long-term thinking", "Discipline and commitment", "Care for all stakeholders"].map((pt) => (
                       <li key={pt} className="flex items-center gap-2 text-sm text-gray-800">
                         <span className="w-1 h-1 rounded-full bg-[#C8A043] shrink-0" />
                         {pt}
@@ -741,7 +738,7 @@ export default function Home() {
                     </div>
                   </div>
                   <ul className="space-y-2 mb-5">
-                    {["Faster execution", "Reduced manual effort", "Better visibility", "Sharper decisions", "Better planning", "Intelligent automation wherever useful"].map((pt) => (
+                    {["Faster execution with less effort", "Better visibility and decisions", "Intelligent automation where it helps"].map((pt) => (
                       <li key={pt} className="flex items-center gap-2 text-sm text-gray-800">
                         <span className="w-1 h-1 rounded-full bg-[#C8A043] shrink-0" />
                         {pt}
@@ -783,13 +780,13 @@ export default function Home() {
         <section className="py-12 bg-[#0D3535]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <FadeIn className="text-center mb-8">
-              <p className="text-[#C8A043] text-xs font-bold uppercase tracking-widest mb-2">Program outcomes</p>
+              <p className="text-[#C8A043] text-xs font-bold uppercase tracking-widest mb-2">Masterclass outcomes</p>
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-2">
-                What you will experience with Growth by Design
+                What This Masterclass Will Help You Understand
               </h2>
               <p className="text-white/75 text-sm max-w-2xl mx-auto">
-                As you move through the program and as the layers start aligning — your business and your role
-                begin to transform.
+                In 60 minutes, you will walk away with clarity on the real reasons growth stalls — and what it
+                actually takes to change that.
               </p>
             </FadeIn>
 
@@ -813,13 +810,44 @@ export default function Home() {
 
             <FadeIn delay={0.5}>
               <p className="text-center text-white/90 text-base md:text-lg font-medium max-w-3xl mx-auto border-t border-white/10 pt-6">
-                Your business becomes stronger. Your effort becomes focused. Your life becomes more balanced.
+                Clarity is the first step. This masterclass gives you that clarity.
               </p>
             </FadeIn>
           </div>
         </section>
 
-        {/* ── SECTION 6: FINAL CTA ── */}
+        {/* ── SECTION 6: INTRO TO PROGRAM ── */}
+        <section className="py-12 bg-[#F8F7F4]">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <FadeIn>
+              <p className="text-[#C8A043] text-xs font-bold uppercase tracking-widest mb-3">Beyond the masterclass</p>
+              <h2
+                style={{ fontFamily: "'Playfair Display', serif" }}
+                className="text-3xl md:text-4xl font-bold text-[#0D3535] mb-4 leading-tight"
+              >
+                This Masterclass Is an Introduction to Growth by Design
+              </h2>
+              <p className="text-gray-700 text-sm md:text-base leading-relaxed mb-4 max-w-2xl mx-auto">
+                Growth by Design is a structured 1-year business transformation program for established Indian
+                family businesses. It works across all five layers — Leadership, Teams, Culture, Systems, and Data —
+                to build a business that grows with clarity and purpose.
+              </p>
+              <p className="text-gray-600 text-sm leading-relaxed mb-6 max-w-xl mx-auto">
+                This ₹99 masterclass is the first step. If the framework resonates with where your business is
+                today, the full program offers personalised guidance, structured implementation, and a
+                transformation journey built for your business specifically.
+              </p>
+              <div className="inline-flex items-center gap-3 px-5 py-3 rounded-2xl bg-[#0D3535]/8 border border-[#0D3535]/20">
+                <span className="w-2 h-2 rounded-full bg-[#C8A043] shrink-0" />
+                <p className="text-[#0D3535] text-sm font-semibold">
+                  Start with the masterclass. Take the next step when you are ready.
+                </p>
+              </div>
+            </FadeIn>
+          </div>
+        </section>
+
+        {/* ── SECTION 7: FINAL CTA ── */}
         <section id="apply" className="py-16 bg-[#0D3535]">
           <div className="max-w-2xl mx-auto px-4 text-center">
             <FadeIn>
@@ -828,10 +856,21 @@ export default function Home() {
                 style={{ fontFamily: "'Playfair Display', serif" }}
                 className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight"
               >
-                Ready to transform your business?
+                Join the Masterclass on Sunday
               </h2>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
+                <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 border border-white/20">
+                  <span className="text-[#C8A043] font-bold text-sm">Sunday, 10 May 2026</span>
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 border border-white/20">
+                  <span className="text-white font-semibold text-sm">11:00 AM – 12:00 PM IST</span>
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#C8A043]/20 border border-[#C8A043]/40">
+                  <span className="text-[#C8A043] font-bold text-sm">Only ₹99</span>
+                </div>
+              </div>
               <p className="text-white/70 text-sm mb-8 max-w-md mx-auto leading-relaxed">
-                Join the Growth by Design Masterclass with Shri Rakesh Jain. Only ₹99.
+                60 minutes with Shri Rakesh Jain. Live session. Webinar access details sent on WhatsApp after registration.
               </p>
               <button
                 onClick={scrollToRegister}
@@ -840,9 +879,13 @@ export default function Home() {
                 Register Now <ArrowRight className="w-4 h-4" />
               </button>
               <p className="text-white/40 text-xs mt-6">
-                Or call us at{" "}
-                <a href="tel:9033050300" className="text-[#C8A043] hover:text-white transition-colors">
-                  90-330-50-300
+                Questions? Call us at{" "}
+                <a href="tel:+917878038514" className="text-[#C8A043] hover:text-white transition-colors">
+                  +91 78780 38514
+                </a>
+                {" "}or{" "}
+                <a href="tel:+919033050200" className="text-[#C8A043] hover:text-white transition-colors">
+                  +91 90330 50200
                 </a>
               </p>
             </FadeIn>
@@ -896,15 +939,20 @@ export default function Home() {
                 <ul className="space-y-4 text-white/70 text-sm">
                   <li className="flex items-start gap-3">
                     <Mail className="w-5 h-5 text-[#C8A043] shrink-0 mt-0.5" />
-                    <a href="mailto:connect@rgbindia.com" className="hover:text-white transition-colors">
-                      connect@rgbindia.com
+                    <a href="mailto:contact@rgbindia.com" className="hover:text-white transition-colors">
+                      contact@rgbindia.com
                     </a>
                   </li>
                   <li className="flex items-start gap-3">
                     <Phone className="w-5 h-5 text-[#C8A043] shrink-0 mt-0.5" />
-                    <a href="tel:+919033050300" className="hover:text-white transition-colors">
-                      +91 90330 50300
-                    </a>
+                    <div className="flex flex-col gap-1">
+                      <a href="tel:+917878038514" className="hover:text-white transition-colors">
+                        +91 78780 38514
+                      </a>
+                      <a href="tel:+919033050200" className="hover:text-white transition-colors">
+                        +91 90330 50200
+                      </a>
+                    </div>
                   </li>
                   <li className="flex items-start gap-3">
                     <MapPin className="w-5 h-5 text-[#C8A043] shrink-0 mt-0.5" />
