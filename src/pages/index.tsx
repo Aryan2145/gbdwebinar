@@ -77,6 +77,8 @@ export default function Home() {
   const [payCompany, setPayCompany] = useState("");
   const [payDesignation, setPayDesignation] = useState("");
   const [payIndustry, setPayIndustry] = useState("");
+  const [payQuantity, setPayQuantity] = useState(1);
+  const [additionalNames, setAdditionalNames] = useState<string[]>([]);
   const [payLoading, setPayLoading] = useState(false);
   const [paySuccess, setPaySuccess] = useState(false);
   const [payError, setPayError] = useState("");
@@ -150,6 +152,10 @@ export default function Home() {
     }
     if (!payEmail.includes("@")) { setPayError("Please enter a valid email address."); return; }
     if (!selectedSession) { setPayError("Please choose a session date."); return; }
+    if (payQuantity > 1) {
+      const missing = additionalNames.slice(0, payQuantity - 1).some((n) => !n.trim());
+      if (missing) { setPayError("Please enter names for all attendees."); return; }
+    }
 
     setPayLoading(true);
     const ok = await loadRazorpay();
@@ -162,7 +168,7 @@ export default function Home() {
       const res = await fetch("/api/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: payName, whatsapp: payWhatsapp, email: payEmail }),
+        body: JSON.stringify({ name: payName, whatsapp: payWhatsapp, email: payEmail, quantity: payQuantity }),
       });
       const order = await res.json();
       if (!res.ok) { setPayError(order.error || "Failed to create order."); setPayLoading(false); return; }
@@ -191,6 +197,8 @@ export default function Home() {
               designation: payDesignation,
               industry: payIndustry,
               session_id: selectedSession,
+              quantity: payQuantity,
+              additional_names: additionalNames.slice(0, payQuantity - 1).filter(Boolean),
             }),
           });
           const data = await verify.json();
@@ -484,6 +492,66 @@ export default function Home() {
                             </div>
                           )}
 
+                          {/* Quantity */}
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-white/80 uppercase tracking-wide">
+                              Number of Tickets
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                              {[1,2,3,4,5,6,7,8,9,10].map((n) => (
+                                <button
+                                  key={n}
+                                  type="button"
+                                  onClick={() => {
+                                    setPayQuantity(n);
+                                    setAdditionalNames(Array(Math.max(0, n - 1)).fill(""));
+                                  }}
+                                  className={`w-9 h-9 rounded-lg text-sm font-bold transition-all ${
+                                    payQuantity === n
+                                      ? "bg-[#C8A043] text-[#0D3535]"
+                                      : "bg-white/10 text-white hover:bg-white/20"
+                                  }`}
+                                >
+                                  {n}
+                                </button>
+                              ))}
+                            </div>
+                            {payQuantity > 1 && (
+                              <p className="text-white/60 text-xs">Total: ₹{(payQuantity * 99).toLocaleString("en-IN")}</p>
+                            )}
+                          </div>
+
+                          {/* Additional attendee names */}
+                          {payQuantity > 1 && (
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <label className="text-xs font-bold text-white/80 uppercase tracking-wide">
+                                  Attendee Names <span className="text-[#C8A043]">*</span>
+                                </label>
+                                <span className="text-xs font-bold text-[#C8A043]">
+                                  {additionalNames.slice(0, payQuantity - 1).filter((n) => n.trim()).length + (payName.trim() ? 1 : 0)}
+                                  <span className="text-white/40"> / {payQuantity} filled</span>
+                                </span>
+                              </div>
+                              <p className="text-white/50 text-xs">{payName || "Attendee 1"} (you) + {payQuantity - 1} more</p>
+                              <div className={payQuantity > 4 ? "space-y-2 max-h-48 overflow-y-auto pr-1 [scrollbar-width:thin] [scrollbar-color:#C8A043_transparent]" : "space-y-2"}>
+                                {Array.from({ length: payQuantity - 1 }).map((_, i) => (
+                                  <input
+                                    key={i}
+                                    value={additionalNames[i] || ""}
+                                    onChange={(e) => {
+                                      const updated = [...additionalNames];
+                                      updated[i] = e.target.value;
+                                      setAdditionalNames(updated);
+                                    }}
+                                    className={inp}
+                                    placeholder={`Attendee ${i + 2} full name`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
                           {payError && (
                             <p className="text-red-300 text-xs bg-red-900/30 border border-red-400/30 rounded-lg px-3 py-2">
                               {payError}
@@ -498,7 +566,7 @@ export default function Home() {
                             {payLoading ? (
                               <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
                             ) : (
-                              <>Pay ₹99 &amp; Register <ArrowRight className="w-4 h-4" /></>
+                              <>Pay ₹{(payQuantity * 99).toLocaleString("en-IN")} &amp; Register {payQuantity > 1 ? `(${payQuantity} tickets)` : ""} <ArrowRight className="w-4 h-4" /></>
                             )}
                           </button>
 

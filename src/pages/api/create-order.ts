@@ -5,10 +5,11 @@ const Razorpay = require("razorpay");
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { name, whatsapp, email } = req.body;
+  const { name, whatsapp, email, quantity = 1 } = req.body;
   if (!name || !whatsapp || !email) {
     return res.status(400).json({ error: "Name, WhatsApp and email are required" });
   }
+  const qty = Math.max(1, Math.min(10, parseInt(quantity, 10) || 1));
 
   console.log("KEY_ID loaded:", process.env.RAZORPAY_KEY_ID);
   console.log("SECRET loaded:", process.env.RAZORPAY_KEY_SECRET ? "YES (length " + process.env.RAZORPAY_KEY_SECRET.length + ")" : "MISSING");
@@ -20,10 +21,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const order = await razorpay.orders.create({
-      amount: 9900,
+      amount: 9900 * qty,
       currency: "INR",
       receipt: `gbd_${Date.now()}`,
-      notes: { name, whatsapp, email },
+      notes: { name, whatsapp, email, quantity: qty },
     });
 
     res.json({

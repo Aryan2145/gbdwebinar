@@ -9,7 +9,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const result = await query(
       `SELECT r.id, r.name, r.company, r.designation, r.industry, r.whatsapp, r.email,
-              r.razorpay_order_id, r.razorpay_payment_id, r.amount, r.payment_status, r.created_at,
+              r.razorpay_order_id, r.razorpay_payment_id, r.amount, r.payment_status,
+              r.quantity, r.additional_names, r.created_at,
               s.label AS session_label, s.date_str AS session_date, s.time_str AS session_time
        FROM registrations r
        LEFT JOIN sessions s ON r.session_id = s.id
