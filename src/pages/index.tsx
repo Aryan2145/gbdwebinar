@@ -48,7 +48,28 @@ const inp =
 
 const LAYERS_COUNT = 5;
 
+type Session = { id: number; label: string; date_str: string; time_str: string; starts_at: string | null };
+
+const getDayName = (iso: string | null) => {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("en-IN", { weekday: "long" });
+};
+
 export default function Home() {
+  // ── Sessions ──────────────────────────────────────────────────────────────
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [selectedSession, setSelectedSession] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch("/api/sessions")
+      .then((r) => r.json())
+      .then((data: Session[]) => {
+        setSessions(data);
+        if (data.length > 0) setSelectedSession(data[0].id);
+      })
+      .catch(() => {});
+  }, []);
+
   // ── Payment form ─────────────────────────────────────────────────────────
   const [payName, setPayName] = useState("");
   const [payWhatsapp, setPayWhatsapp] = useState("");
@@ -128,6 +149,7 @@ export default function Home() {
       setPayError("Please enter a valid 10-digit WhatsApp number."); return;
     }
     if (!payEmail.includes("@")) { setPayError("Please enter a valid email address."); return; }
+    if (!selectedSession) { setPayError("Please choose a session date."); return; }
 
     setPayLoading(true);
     const ok = await loadRazorpay();
@@ -168,6 +190,7 @@ export default function Home() {
               company: payCompany,
               designation: payDesignation,
               industry: payIndustry,
+              session_id: selectedSession,
             }),
           });
           const data = await verify.json();
@@ -180,6 +203,17 @@ export default function Home() {
       rzp.on("payment.failed", (r: any) => {
         setPayError(r.error?.description || "Payment failed. Please try again.");
         setPayLoading(false);
+        fetch("/api/payment-failed", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            razorpay_order_id: r.error?.metadata?.order_id,
+            razorpay_payment_id: r.error?.metadata?.payment_id,
+            name: payName, whatsapp: payWhatsapp, email: payEmail,
+            company: payCompany, designation: payDesignation,
+            industry: payIndustry, session_id: selectedSession,
+          }),
+        }).catch(() => {});
       });
       rzp.open();
     } catch {
@@ -217,9 +251,9 @@ export default function Home() {
   const layers = [
     { num: "01", title: "Transforming Leadership", desc: "The owner moves from daily doing to higher-value leadership", points: ["Strategic Thinking", "Better Planning", "Mentoring Next-Line Leaders", "Building Stronger Customer And Supplier Relationships", "Adopting Better Technology", "Self, Family, And Contribution To Society"], close: "A stronger leader builds a stronger business" },
     { num: "02", title: "Transforming Teams", desc: "Teams begin to work with clarity, ownership, and responsibility", points: ["Clear Roles", "Stronger Accountability", "Better Decision-Making At The Right Level", "Smoother Execution", "Reduced Dependency On The Owner"], close: "People take ownership. Work moves with strength" },
-    { num: "03", title: "Transforming Culture", desc: "Culture becomes the force that aligns the entire organisation", points: ["Connects Vision, Strategy, People, Systems, Execution", "Culture Of Growth And Happiness", "Culture Of Contribution And Excellence", "The whole organisation moves in one direction"], close: "The whole organisation starts moving in one direction" },
+    { num: "03", title: "Transforming Culture", desc: "Culture becomes the force that aligns the entire organisation", points: ["Connects Vision, Strategy, People, Systems, Execution", "Culture Of Growth And Happiness", "Culture Of Contribution And Excellence", "The whole organisation moves in one direction"], close: "The whole organisation moves in one direction" },
     { num: "04", title: "Transforming Systems", desc: "Work begins to move through simple and powerful systems", points: ["Clearer Processes", "Smoother Execution", "Reduced Manual Effort", "Stronger Discipline", "Better Use Of AI And Technology", "Systems And Ecosystem Working Together"], close: "Systems create speed. Ecosystem creates scale" },
-    { num: "05", title: "Transformation Through Data", desc: "Owners start seeing the business with greater clarity", points: ["Revenue And Profit Visibility", "Cashflow Tracking", "Team Performance Dashboards", "Business Movement At A Glance"], close: "Instinct becomes stronger when backed by visible data" },
+    { num: "05", title: "Transformation Data", desc: "Owners start seeing the business with greater clarity", points: ["Revenue And Profit Visibility", "Cashflow Tracking", "Team Performance Dashboards", "Business Movement At A Glance"], close: "Stronger instinct backed by visible data" },
   ];
 
   const outcomes = [
@@ -229,7 +263,6 @@ export default function Home() {
     { title: "How teams can take genuine ownership", points: ["What prevents ownership today", "The shift that makes teams self-driven"] },
     { title: "Why cashflow stays under stress", points: ["Where money gets locked", "How to improve predictability"] },
     { title: "How AI and systems can reduce your effort", points: ["Where to start with systems", "How smart tools reduce your load"] },
-    { title: "What comes after this masterclass", points: ["The full Growth by Design program", "How to assess if it is right for you"] },
   ];
 
   return (
@@ -246,15 +279,15 @@ export default function Home() {
         <nav className="sticky top-0 z-50 bg-[#0D3535]/95 backdrop-blur-sm border-b border-white/10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
             <div style={{ fontFamily: "'Playfair Display', serif" }} className="text-white font-bold text-lg">
-              RGB <span className="text-[#C8A043]">India</span>
+              Growth by <span className="text-[#C8A043]">Design</span>
             </div>
             <div className="flex items-center gap-3">
-              <a href="tel:+917878038514" className="hidden sm:flex items-center gap-1.5 text-white/70 hover:text-white transition-colors text-sm">
+              <a href="tel:+917878038514" className="hidden sm:flex items-center gap-1.5 text-white hover:text-[#C8A043] transition-colors text-sm">
                 <Phone className="w-3.5 h-3.5" /> 78780 38514
               </a>
               <button
                 onClick={scrollToRegister}
-                className="px-4 py-2 bg-[#C8A043] text-white rounded-full font-semibold text-sm hover:bg-[#C8A043]/90 transition-all"
+                className="px-4 py-2 bg-[#C8A043] text-[#0D3535] rounded-full font-semibold text-sm hover:bg-[#C8A043]/90 transition-all"
               >
                 Register Now
               </button>
@@ -279,25 +312,29 @@ export default function Home() {
                 >
                   Your Business Is Growing, But Is It Still Depending Too Much on You?
                 </h2>
-                <p className="text-[#0D3535] text-xs font-bold uppercase tracking-widest mb-3">
+                <h3 className="text-[#0D3535] text-base font-bold uppercase tracking-widest mb-3">
                   Growth by Design Masterclass
-                </p>
+                </h3>
                 <p className="text-gray-800 text-sm leading-relaxed mb-5">
-                  A 60-minute live session with Shri Rakesh Jain for business owners who want stronger revenue, better cash flow, responsible teams, reduced owner dependency, and more time with better control.
+                  A 60-minute live session with <b>Shri Rakesh Jain</b> for business owners who want <b>stronger revenue</b>, <b>better cash flow</b>, <b>responsible teams</b>, <b>reduced owner dependency</b>, and <b>more time with better control</b>.
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {["Sunday, 10 May 2026", "11:00 AM – 12:00 PM IST", "₹99 only"].map((item, i) => (
-                    <span
-                      key={i}
-                      className={`px-3 py-1.5 rounded-full text-xs font-bold border ${
-                        i === 2
-                          ? "bg-[#C8A043] text-[#0D3535] border-[#C8A043]"
-                          : "bg-[#0D3535]/8 text-[#0D3535] border-[#0D3535]/20"
-                      }`}
+                  <button
+                    type="button"
+                    onClick={scrollToRegister}
+                    className="px-3 py-1.5 rounded-full text-xs font-bold bg-[#C8A043] text-[#0D3535] border border-[#C8A043] hover:bg-[#C8A043]/90 transition-all"
+                  >
+                    ₹99 only
+                  </button>
+                  {sessions.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={scrollToRegister}
+                      className="px-3 py-1.5 rounded-full text-xs font-bold bg-[#0D3535] text-white border border-[#0D3535] hover:bg-[#0D3535]/90 transition-all"
                     >
-                      {item}
-                    </span>
-                  ))}
+                      {sessions.length} sessions available
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -340,8 +377,7 @@ export default function Home() {
                               Register Now
                             </h3>
                             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C8A043]">
-                              <span className="text-[#0D3535] font-black text-sm">₹99</span>
-                              <span className="text-[#0D3535]/80 text-xs font-semibold">only</span>
+                              <span className="text-[#0D3535] font-black text-sm">₹99 only</span>
                             </div>
                           </div>
                           <p className="text-white/60 text-xs">Secure payment via Razorpay. Details sent on WhatsApp.</p>
@@ -428,6 +464,26 @@ export default function Home() {
                             </div>
                           </div>
 
+                          {sessions.length > 0 && (
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-bold text-white/80 uppercase tracking-wide">
+                                Choose Session <span className="text-[#C8A043]">*</span>
+                              </label>
+                              <select
+                                value={selectedSession ?? ""}
+                                onChange={(e) => setSelectedSession(Number(e.target.value))}
+                                className={inp}
+                              >
+                                <option value="" disabled>Select a session</option>
+                                {sessions.map((s) => (
+                                  <option key={s.id} value={s.id}>
+                                    {s.label} — {s.date_str}, {s.time_str}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+
                           {payError && (
                             <p className="text-red-300 text-xs bg-red-900/30 border border-red-400/30 rounded-lg px-3 py-2">
                               {payError}
@@ -437,7 +493,7 @@ export default function Home() {
                           <button
                             type="submit"
                             disabled={payLoading}
-                            className="w-full py-3.5 bg-[#C8A043] text-white rounded-xl font-bold text-base hover:bg-[#C8A043]/90 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0 shadow-lg shadow-[#C8A043]/20 flex items-center justify-center gap-2"
+                            className="w-full py-3.5 bg-[#C8A043] text-[#0D3535] rounded-xl font-bold text-base hover:bg-[#C8A043]/90 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0 shadow-lg shadow-[#C8A043]/20 flex items-center justify-center gap-2"
                           >
                             {payLoading ? (
                               <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
@@ -471,9 +527,9 @@ export default function Home() {
 
               {/* Left */}
               <FadeIn className="py-8 lg:py-10 pr-0 lg:pr-8">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 mb-4">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#C8A043] animate-pulse" />
-                  <span className="text-xs font-semibold text-white/90 tracking-wider uppercase">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#C8A043] mb-4">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#0D3535] animate-pulse" />
+                  <span className="text-sm font-black text-[#0D3535] tracking-wide uppercase">
                     A 60-Minute Masterclass for Family Business Owners
                   </span>
                 </div>
@@ -495,12 +551,12 @@ export default function Home() {
                   A 60-minute live session on building a business that grows without depending entirely on you —
                   with clarity, capable teams, and smart systems.
                 </p>
-                <p className="text-white/75 text-sm md:text-base leading-relaxed mb-7 max-w-xl">
+                <p className="text-white text-sm md:text-base leading-relaxed mb-7 max-w-xl">
                   Clear frameworks, real strategies, and actionable thinking — designed for established Indian
                   family businesses.
                 </p>
 
-                <p className="text-white/50 text-xs font-bold uppercase tracking-widest mb-3">
+                <p className="text-white text-xs font-bold uppercase tracking-widest mb-3">
                   What Makes Growth by Design Powerful
                 </p>
                 <div className="flex flex-wrap gap-2 mb-3">
@@ -513,20 +569,20 @@ export default function Home() {
                     </span>
                   ))}
                 </div>
-                <p className="text-white/45 text-xs leading-relaxed mb-7 max-w-md">
+                <p className="text-white text-xs leading-relaxed mb-7 max-w-md">
                   This masterclass introduces these ideas. The full program goes deeper.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-start gap-4">
                   <button
                     onClick={scrollToRegister}
-                    className="inline-flex items-center gap-2 px-7 py-3.5 bg-[#C8A043] text-white rounded-full font-bold text-base shadow-lg hover:bg-[#C8A043]/90 hover:-translate-y-0.5 transition-all duration-200"
+                    className="inline-flex items-center gap-2 px-7 py-3.5 bg-[#C8A043] text-[#0D3535] rounded-full font-bold text-base shadow-lg hover:bg-[#C8A043]/90 hover:-translate-y-0.5 transition-all duration-200"
                   >
                     Register Now <ArrowRight className="w-4 h-4" />
                   </button>
                   <a
                     href="tel:+917878038514"
-                    className="inline-flex items-center gap-2 text-white/70 hover:text-white transition-colors text-sm font-medium self-center"
+                    className="inline-flex items-center gap-2 text-white hover:text-[#C8A043] transition-colors text-sm font-medium self-center"
                   >
                     <Phone className="w-4 h-4" /> 78780 38514
                   </a>
@@ -565,9 +621,6 @@ export default function Home() {
         <section className="py-12 bg-[#F8F7F4]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <FadeIn className="text-center mb-8">
-              <p className="text-[#C8A043] text-xs font-bold uppercase tracking-widest mb-2">
-                What brings business owners to us
-              </p>
               <h2
                 style={{ fontFamily: "'Playfair Display', serif" }}
                 className="text-3xl md:text-4xl font-bold text-[#0D3535]"
@@ -576,15 +629,20 @@ export default function Home() {
               </h2>
             </FadeIn>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 [grid-auto-rows:1fr]">
               {problems.map((problem, i) => (
-                <FadeIn key={i} delay={0.06 * i}>
-                  <div className="bg-[#EAE8E3] border border-[#D3D0C9] rounded-2xl p-5 h-full hover:shadow-md hover:border-[#C8A043]/40 transition-all duration-200">
-                    <h3 className="font-bold text-[#0D3535] text-sm mb-3 leading-snug">{problem.title}</h3>
-                    <ul className="space-y-1.5">
+                <FadeIn key={i} delay={0.06 * i} className="h-full">
+                  <div className="group bg-[#E8E5DF] border border-[#CCCAC3] rounded-2xl p-5 h-full hover:bg-[#0D3535] hover:border-[#0D3535] hover:shadow-lg transition-all duration-500 cursor-default">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <h3 className="font-bold text-[#0D3535] group-hover:text-white text-sm leading-snug transition-colors duration-500">{problem.title}</h3>
+                      <span className="text-[11px] font-black text-[#0D3535] group-hover:text-white shrink-0 mt-0.5 tabular-nums transition-colors duration-500">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                    </div>
+                    <ul className="space-y-2">
                       {problem.points.map((pt, j) => (
-                        <li key={j} className="flex items-start gap-2 text-xs text-gray-700 leading-relaxed">
-                          <span className="w-1 h-1 rounded-full bg-[#C8A043] shrink-0 mt-1.5" />
+                        <li key={j} className="flex items-start gap-2.5 text-sm text-gray-800 group-hover:text-white/85 leading-snug transition-colors duration-500">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#C8A043] shrink-0 mt-1.5" />
                           {pt}
                         </li>
                       ))}
@@ -600,7 +658,7 @@ export default function Home() {
         <section className="py-12 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <FadeIn className="text-center mb-8">
-              <p className="text-[#C8A043] text-xs font-bold uppercase tracking-widest mb-2">The Framework</p>
+              <p className="text-[#0D3535] text-xs font-bold uppercase tracking-widest mb-2">The Framework</p>
               <h2
                 style={{ fontFamily: "'Playfair Display', serif" }}
                 className="text-3xl md:text-4xl font-bold text-[#0D3535] mb-2"
@@ -633,10 +691,10 @@ export default function Home() {
                       )}
                     >
                       <div className="flex items-center gap-2 mb-3">
-                        <span className="text-xs font-black text-[#C8A043]">{layer.num}</span>
+                        <span className={cn("text-xs font-black transition-colors duration-500", isActive ? "text-white" : "text-[#0D3535] group-hover:text-white")}>{layer.num}</span>
                         <div className={cn(
                           "h-px flex-1 transition-colors duration-500",
-                          isActive ? "bg-[#C8A043]/50" : "bg-[#C8A043]/30 group-hover:bg-[#C8A043]/50"
+                          isActive ? "bg-[#C8A043]/50" : "bg-[#0D3535]/40 group-hover:bg-[#C8A043]/50"
                         )} />
                       </div>
                       <h3 className={cn(
@@ -647,15 +705,18 @@ export default function Home() {
                       </h3>
                       <p className={cn(
                         "text-xs flex-1 mb-4 leading-relaxed transition-colors duration-500",
-                        isActive ? "text-white/65" : "text-gray-600 group-hover:text-white/65"
+                        isActive ? "text-white/85" : "text-gray-800 group-hover:text-white/85"
                       )}>
                         {layer.desc}
                       </p>
                       <div className={cn(
-                        "border-t pt-3 transition-colors duration-500",
+                        "border-t pt-3 mt-auto transition-colors duration-500",
                         isActive ? "border-[#C8A043]/30" : "border-[#BDBAB2] group-hover:border-[#C8A043]/30"
                       )}>
-                        <p className="text-[10px] font-bold uppercase tracking-widest mb-1 text-[#C8A043]">
+                        <p className={cn(
+                          "text-[10px] font-bold uppercase tracking-widest mb-1 transition-colors duration-500",
+                          isActive ? "text-[#C8A043]" : "text-[#0D3535] group-hover:text-[#C8A043]"
+                        )}>
                           The outcome
                         </p>
                         <p className={cn(
@@ -671,7 +732,7 @@ export default function Home() {
               })}
             </div>
             <FadeIn delay={0.5}>
-              <p className="text-center text-gray-600 text-sm max-w-2xl mx-auto border-t border-[#D5D2CB] pt-5">
+              <p className="text-center text-gray-800 text-sm max-w-2xl mx-auto border-t border-[#D5D2CB] pt-5">
                 In this masterclass, we will introduce how these five layers work together — and what it takes
                 to get all of them moving in the right direction.
               </p>
@@ -683,7 +744,7 @@ export default function Home() {
         <section className="py-12 bg-[#F8F7F4]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <FadeIn className="text-center mb-8">
-              <p className="text-[#C8A043] text-xs font-bold uppercase tracking-widest mb-2">The difference</p>
+              <p className="text-[#0D3535] text-xs font-bold uppercase tracking-widest mb-2">The difference</p>
               <h2
                 style={{ fontFamily: "'Playfair Display', serif" }}
                 className="text-3xl md:text-4xl font-bold text-[#0D3535] mb-2"
@@ -698,56 +759,56 @@ export default function Home() {
 
             <div className="grid md:grid-cols-2 gap-5 mb-5">
               <FadeIn delay={0.1}>
-                <div className="bg-[#EAE8E3] border border-[#D3D0C9] rounded-2xl p-6 h-full">
+                <div className="group bg-[#E8E5DF] border border-[#CCCAC3] rounded-2xl p-6 h-full hover:bg-[#0D3535] hover:border-[#0D3535] hover:shadow-lg transition-all duration-500 cursor-default">
                   <div className="flex items-start gap-4 mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-[#0D3535]/10 border border-[#0D3535]/20 flex items-center justify-center shrink-0">
-                      <span className="text-[#0D3535] font-bold text-base">॥</span>
+                    <div className="w-10 h-10 rounded-xl bg-[#0D3535] group-hover:bg-[#C8A043] border border-[#0D3535] group-hover:border-[#C8A043] flex items-center justify-center shrink-0 transition-colors duration-500">
+                      <span className="text-[#C8A043] group-hover:text-[#0D3535] font-bold text-base transition-colors duration-500">॥</span>
                     </div>
                     <div>
-                      <h3 className="font-bold text-[#0D3535] text-base leading-snug">
+                      <h3 className="font-bold text-[#0D3535] group-hover:text-white text-base leading-snug transition-colors duration-500">
                         Ancient Indian Business Wisdom
                       </h3>
-                      <p className="text-xs text-gray-600 mt-1">
+                      <p className="text-xs text-gray-800 group-hover:text-white/80 mt-1 transition-colors duration-500">
                         Built on principles that have created strong and respected businesses for generations
                       </p>
                     </div>
                   </div>
                   <ul className="space-y-2 mb-5">
                     {["Trust and long-term thinking", "Discipline and commitment", "Care for all stakeholders"].map((pt) => (
-                      <li key={pt} className="flex items-center gap-2 text-sm text-gray-800">
-                        <span className="w-1 h-1 rounded-full bg-[#C8A043] shrink-0" />
+                      <li key={pt} className="flex items-center gap-2 text-sm text-gray-800 group-hover:text-white/85 transition-colors duration-500">
+                        <span className="w-1 h-1 rounded-full bg-[#0D3535] group-hover:bg-[#C8A043] shrink-0 transition-colors duration-500" />
                         {pt}
                       </li>
                     ))}
                   </ul>
-                  <p className="text-sm text-[#0D3535] font-semibold border-t border-[#C8C5BE] pt-4 leading-relaxed">
+                  <p className="text-sm text-[#0D3535] group-hover:text-white font-semibold border-t border-[#C8C5BE] group-hover:border-white/20 pt-4 leading-relaxed transition-colors duration-500">
                     Ancient Indian Business Wisdom builds the foundation for strong and stable growth
                   </p>
                 </div>
               </FadeIn>
 
               <FadeIn delay={0.2}>
-                <div className="bg-[#EAE8E3] border border-[#D3D0C9] rounded-2xl p-6 h-full">
+                <div className="group bg-[#E8E5DF] border border-[#CCCAC3] rounded-2xl p-6 h-full hover:bg-[#0D3535] hover:border-[#0D3535] hover:shadow-lg transition-all duration-500 cursor-default">
                   <div className="flex items-start gap-4 mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-[#C8A043]/15 border border-[#C8A043]/30 flex items-center justify-center shrink-0">
-                      <span className="text-[#C8A043] font-bold text-base">AI</span>
+                    <div className="w-10 h-10 rounded-xl bg-[#0D3535] group-hover:bg-[#C8A043] border border-[#0D3535] group-hover:border-[#C8A043] flex items-center justify-center shrink-0 transition-colors duration-500">
+                      <span className="text-[#C8A043] group-hover:text-[#0D3535] font-bold text-base transition-colors duration-500">AI</span>
                     </div>
                     <div>
-                      <h3 className="font-bold text-[#0D3535] text-base leading-snug">
+                      <h3 className="font-bold text-[#0D3535] group-hover:text-white text-base leading-snug transition-colors duration-500">
                         Latest AI-Driven Tools and Systems
                       </h3>
-                      <p className="text-xs text-gray-600 mt-1">Built to improve speed, visibility, and execution</p>
+                      <p className="text-xs text-gray-800 group-hover:text-white/80 mt-1 transition-colors duration-500">Built to improve speed, visibility, and execution</p>
                     </div>
                   </div>
                   <ul className="space-y-2 mb-5">
                     {["Faster execution with less effort", "Better visibility and decisions", "Intelligent automation where it helps"].map((pt) => (
-                      <li key={pt} className="flex items-center gap-2 text-sm text-gray-800">
-                        <span className="w-1 h-1 rounded-full bg-[#C8A043] shrink-0" />
+                      <li key={pt} className="flex items-center gap-2 text-sm text-gray-800 group-hover:text-white/85 transition-colors duration-500">
+                        <span className="w-1 h-1 rounded-full bg-[#0D3535] group-hover:bg-[#C8A043] shrink-0 transition-colors duration-500" />
                         {pt}
                       </li>
                     ))}
                   </ul>
-                  <p className="text-sm text-[#0D3535] font-semibold border-t border-[#C8C5BE] pt-4 leading-relaxed">
+                  <p className="text-sm text-[#0D3535] group-hover:text-white font-semibold border-t border-[#C8C5BE] group-hover:border-white/20 pt-4 leading-relaxed transition-colors duration-500">
                     Latest AI-Driven Tools and Systems strengthen execution and improve business speed
                   </p>
                 </div>
@@ -757,18 +818,27 @@ export default function Home() {
             <FadeIn delay={0.3}>
               <div className="bg-[#0D3535] rounded-2xl px-8 py-6 text-center">
                 <p className="text-[#C8A043] text-xs font-bold uppercase tracking-widest mb-3">Together</p>
-                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-2 mb-4 max-w-3xl mx-auto text-left sm:text-center">
-                  {[
-                    "Strong philosophy gives direction",
-                    "Modern tools improve execution",
-                    "Systems and ecosystem start working together",
-                    "Growth moves with greater clarity, speed, and focused effort",
-                  ].map((line, i) => (
-                    <div key={i} className="flex items-start sm:flex-col sm:items-center gap-2">
-                      <span className="w-1 h-1 rounded-full bg-[#C8A043] shrink-0 mt-2 sm:mt-0 sm:mb-1" />
-                      <p className="text-white/85 text-sm leading-relaxed">{line}</p>
-                    </div>
-                  ))}
+                <div className="max-w-3xl mx-auto mb-4">
+                  {/* Connector line with dots — hidden on mobile, shown sm+ */}
+                  <div className="relative hidden sm:flex items-center justify-between mb-5 px-[12.5%]">
+                    <div className="absolute inset-x-[12.5%] top-1/2 -translate-y-1/2 h-px bg-[#C8A043]/40" />
+                    {[0,1,2,3].map((i) => (
+                      <span key={i} className="relative w-2.5 h-2.5 rounded-full bg-[#C8A043] border-2 border-[#0D3535] z-10" />
+                    ))}
+                  </div>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-2 text-left sm:text-center">
+                    {[
+                      "Strong philosophy gives direction",
+                      "Modern tools improve execution",
+                      "Systems and ecosystem start working together",
+                      "Growth moves with greater clarity, speed, and focused effort",
+                    ].map((line, i) => (
+                      <div key={i} className="flex items-start sm:flex-col sm:items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#C8A043] shrink-0 mt-2 sm:hidden" />
+                        <p className="text-white/85 text-sm leading-relaxed">{line}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 <p className="text-white font-semibold text-base mt-4 border-t border-white/10 pt-4">
                   Strong Foundations and Modern Intelligence create powerful growth
@@ -792,15 +862,20 @@ export default function Home() {
               </p>
             </FadeIn>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
+            <div className="grid sm:grid-cols-2 gap-4 mb-7">
               {outcomes.map((outcome, i) => (
-                <FadeIn key={i} delay={0.07 * i}>
-                  <div className="bg-white/[0.08] border border-white/[0.15] rounded-2xl p-5 hover:bg-white/[0.12] hover:border-white/[0.25] transition-all duration-200 h-full">
-                    <h3 className="font-semibold text-white text-sm leading-snug mb-3">{outcome.title}</h3>
+                <FadeIn key={i} delay={0.06 * i} className="h-full">
+                  <div className="group bg-[#E8E5DF] border border-[#CCCAC3] rounded-2xl p-5 h-full hover:bg-[#C8A043] hover:border-[#C8A043] hover:shadow-lg transition-all duration-500 cursor-default">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <h3 className="font-bold text-[#0D3535] text-sm leading-snug transition-colors duration-500">{outcome.title}</h3>
+                      <span className="text-xs font-black text-[#0D3535] shrink-0 tabular-nums transition-colors duration-500">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                    </div>
                     <ul className="space-y-1.5">
                       {outcome.points.map((pt, j) => (
-                        <li key={j} className="flex items-start gap-2 text-xs text-white/75 leading-relaxed">
-                          <span className="w-1 h-1 rounded-full bg-[#C8A043] shrink-0 mt-1.5" />
+                        <li key={j} className="flex items-start gap-2 text-xs text-gray-800 leading-relaxed transition-colors duration-500">
+                          <span className="w-1 h-1 rounded-full bg-[#0D3535] group-hover:bg-[#0D3535] shrink-0 mt-1.5" />
                           {pt}
                         </li>
                       ))}
@@ -822,7 +897,7 @@ export default function Home() {
         <section className="py-12 bg-[#F8F7F4]">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <FadeIn>
-              <p className="text-[#C8A043] text-xs font-bold uppercase tracking-widest mb-3">Beyond the masterclass</p>
+              <p className="text-[#0D3535] text-xs font-bold uppercase tracking-widest mb-3">Beyond the masterclass</p>
               <h2
                 style={{ fontFamily: "'Playfair Display', serif" }}
                 className="text-3xl md:text-4xl font-bold text-[#0D3535] mb-4 leading-tight"
@@ -830,18 +905,15 @@ export default function Home() {
                 This Masterclass Is an Introduction to Growth by Design
               </h2>
               <p className="text-gray-700 text-sm md:text-base leading-relaxed mb-4 max-w-2xl mx-auto">
-                Growth by Design is a structured 1-year business transformation program for established Indian
-                family businesses. It works across all five layers — Leadership, Teams, Culture, Systems, and Data —
-                to build a business that grows with clarity and purpose.
+                Growth by Design is a structured 1-year business transformation program for established Indian family businesses.
+                It works across all five layers — Leadership, Teams, Culture, Systems, and Data — to build a business that grows with clarity and purpose.
               </p>
-              <p className="text-gray-600 text-sm leading-relaxed mb-6 max-w-xl mx-auto">
-                This ₹99 masterclass is the first step. If the framework resonates with where your business is
-                today, the full program offers personalised guidance, structured implementation, and a
-                transformation journey built for your business specifically.
+              <p className="text-gray-700 text-sm md:text-base leading-relaxed mb-6 max-w-2xl mx-auto">
+                The full program offers <strong>personalised guidance</strong>, <strong>structured implementation</strong>, and a <strong>transformation journey built for your business specifically</strong>.
               </p>
-              <div className="inline-flex items-center gap-3 px-5 py-3 rounded-2xl bg-[#0D3535]/8 border border-[#0D3535]/20">
+              <div className="inline-flex items-center gap-3 px-5 py-3 rounded-2xl bg-[#0D3535] border border-[#0D3535]">
                 <span className="w-2 h-2 rounded-full bg-[#C8A043] shrink-0" />
-                <p className="text-[#0D3535] text-sm font-semibold">
+                <p className="text-white text-sm font-semibold">
                   Start with the masterclass. Take the next step when you are ready.
                 </p>
               </div>
@@ -858,29 +930,55 @@ export default function Home() {
                 style={{ fontFamily: "'Playfair Display', serif" }}
                 className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight"
               >
-                Join the Masterclass on Sunday
+                Join the Live Masterclass
               </h2>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
-                <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 border border-white/20">
-                  <span className="text-[#C8A043] font-bold text-sm">Sunday, 10 May 2026</span>
-                </div>
-                <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 border border-white/20">
-                  <span className="text-white font-semibold text-sm">11:00 AM – 12:00 PM IST</span>
-                </div>
-                <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#C8A043]/20 border border-[#C8A043]/40">
-                  <span className="text-[#C8A043] font-bold text-sm">Only ₹99</span>
-                </div>
+              <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
+                {sessions.slice(0, 3).map((s, i) => (
+                  <div key={s.id} className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedSession(s.id);
+                        document.getElementById("register")?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      className={`flex flex-col items-center px-5 py-3 rounded-xl transition-all duration-200 hover:-translate-y-0.5 ${
+                        selectedSession === s.id
+                          ? "bg-[#C8A043] shadow-lg shadow-[#C8A043]/30"
+                          : "bg-white hover:bg-[#F8F7F4]"
+                      }`}
+                    >
+                      {getDayName(s.starts_at) && (
+                        <span className={`text-xs font-bold uppercase tracking-wide mb-0.5 ${selectedSession === s.id ? "text-[#0D3535]/60" : "text-gray-400"}`}>{getDayName(s.starts_at)}</span>
+                      )}
+                      <span className="font-bold text-sm text-[#0D3535]">{s.date_str}</span>
+                      <span className={`text-xs font-bold mt-0.5 ${selectedSession === s.id ? "text-[#0D3535]/70" : "text-gray-500"}`}>{s.time_str}</span>
+                    </button>
+                    {i === 2 && sessions.length > 3 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedSession(sessions[3].id);
+                          document.getElementById("register")?.scrollIntoView({ behavior: "smooth" });
+                        }}
+                        className="flex flex-col items-center px-4 py-3 rounded-xl bg-[#164444] hover:bg-[#1d5252] transition-all duration-200 hover:-translate-y-0.5"
+                      >
+                        <span className="text-[#C8A043] font-bold text-sm">+{sessions.length - 3} more</span>
+                        <span className="text-white/50 text-xs mt-0.5">sessions</span>
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
-              <p className="text-white/70 text-sm mb-8 max-w-md mx-auto leading-relaxed">
+              <p className="text-white text-sm mb-8 max-w-md mx-auto leading-relaxed">
                 60 minutes with Shri Rakesh Jain. Live session. Webinar access details sent on WhatsApp after registration.
               </p>
               <button
                 onClick={scrollToRegister}
-                className="inline-flex items-center gap-2 px-8 py-4 bg-[#C8A043] text-white rounded-full font-bold text-base shadow-lg hover:bg-[#C8A043]/90 hover:-translate-y-0.5 transition-all duration-200"
+                className="inline-flex items-center gap-2 px-8 py-4 bg-[#C8A043] text-[#0D3535] rounded-full font-bold text-base shadow-lg hover:bg-[#C8A043]/90 hover:-translate-y-0.5 transition-all duration-200"
               >
                 Register Now <ArrowRight className="w-4 h-4" />
               </button>
-              <p className="text-white/40 text-xs mt-6">
+              <p className="text-white/70 text-xs mt-6">
                 Questions? Call us at{" "}
                 <a href="tel:+917878038514" className="text-[#C8A043] hover:text-white transition-colors">
                   +91 78780 38514
@@ -900,13 +998,11 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
 
               <div className="space-y-6">
-                <div style={{ fontFamily: "'Playfair Display', serif" }} className="text-2xl font-bold text-white">
-                  RGB{" "}
-                  <span className="block text-xs font-sans text-[#C8A043] uppercase tracking-wider mt-1">
-                    Business Growth Consulting
-                  </span>
+                <div className="flex flex-col leading-none">
+                  <span className="text-white font-black text-3xl tracking-tight" style={{ fontFamily: "'DM Sans', sans-serif" }}>RGB</span>
+                  <span className="text-[#C8A043] text-xs font-bold uppercase tracking-widest mt-1">Business Growth Consulting</span>
                 </div>
-                <p className="text-white/70 max-w-sm leading-relaxed text-sm">
+                <p className="text-white max-w-sm leading-relaxed text-sm">
                   We guide growth-minded business leaders in turning ambition into structured,
                   self-sustaining, and purposeful organizations.
                 </p>
@@ -919,10 +1015,10 @@ export default function Home() {
                 >
                   Quick Links
                 </h4>
-                <ul className="space-y-3 text-white/70 text-sm">
-                  <li><a href="https://rgbindia.com/" className="hover:text-[#C8A043] transition-colors">Home</a></li>
-                  <li><a href="https://rgbindia.com/about-us/" className="hover:text-[#C8A043] transition-colors">About RGB India</a></li>
-                  <li><a href="https://rgbindia.com/programs/" className="hover:text-[#C8A043] transition-colors">Programs</a></li>
+                <ul className="space-y-3 text-white text-sm">
+                  <li><a href="https://rgbindia.com/" target="_blank" rel="noopener noreferrer" className="hover:text-[#C8A043] transition-colors">Home</a></li>
+                  <li><a href="https://rgbindia.com/about-us/" target="_blank" rel="noopener noreferrer" className="hover:text-[#C8A043] transition-colors">About RGB India</a></li>
+                  <li><a href="https://rgbindia.com/programs/" target="_blank" rel="noopener noreferrer" className="hover:text-[#C8A043] transition-colors">Programs</a></li>
                   <li>
                     <button onClick={scrollToRegister} className="hover:text-[#C8A043] transition-colors">
                       Register for Webinar
@@ -938,7 +1034,7 @@ export default function Home() {
                 >
                   Get in Touch
                 </h4>
-                <ul className="space-y-4 text-white/70 text-sm">
+                <ul className="space-y-4 text-white text-sm">
                   <li className="flex items-start gap-3">
                     <Mail className="w-5 h-5 text-[#C8A043] shrink-0 mt-0.5" />
                     <a href="mailto:contact@rgbindia.com" className="hover:text-white transition-colors">
@@ -958,7 +1054,14 @@ export default function Home() {
                   </li>
                   <li className="flex items-start gap-3">
                     <MapPin className="w-5 h-5 text-[#C8A043] shrink-0 mt-0.5" />
-                    <span>India&apos;s Trusted Voice in Family Business Transformation</span>
+                    <a
+                      href="https://maps.app.goo.gl/srpWKyhPBPEpvp817"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-[#C8A043] transition-colors"
+                    >
+                      804, Avadh Kontina, VIP Road, Vesu, Surat, 395007
+                    </a>
                   </li>
                 </ul>
               </div>
@@ -967,7 +1070,7 @@ export default function Home() {
 
             <div className="mt-16 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-white/50">
               <p>© {new Date().getFullYear()} RGB India · Business Growth Consulting</p>
-              <a href="https://rgbindia.com" className="hover:text-white transition-colors">rgbindia.com</a>
+              <a href="https://rgbindia.com" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">rgbindia.com</a>
             </div>
           </div>
         </footer>

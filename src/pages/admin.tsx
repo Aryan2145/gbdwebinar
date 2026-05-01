@@ -1,6 +1,6 @@
 import { useState, useEffect, FormEvent } from "react";
 import Head from "next/head";
-import { LogOut, RefreshCw, Users, IndianRupee } from "lucide-react";
+import { LogOut, RefreshCw, Users, IndianRupee, CalendarDays, Plus, ToggleLeft, ToggleRight } from "lucide-react";
 
 type Registration = {
   id: number;
@@ -13,31 +13,145 @@ type Registration = {
   razorpay_order_id: string;
   razorpay_payment_id: string;
   amount: number;
+  payment_status: string;
+  created_at: string;
+  session_label: string | null;
+  session_date: string | null;
+  session_time: string | null;
+};
+
+type Session = {
+  id: number;
+  label: string;
+  date_str: string;
+  time_str: string;
+  is_active: boolean;
+  starts_at: string | null;
+  ends_at: string | null;
   created_at: string;
 };
 
 export default function AdminPage() {
   const [view, setView] = useState<"loading" | "login" | "dashboard">("loading");
+  const [activeTab, setActiveTab] = useState<"registrations" | "sessions">("registrations");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+
+  // New session form
+  const [newLabel, setNewLabel] = useState("");
+  const [newDatePicker, setNewDatePicker] = useState("");
+  const [newTimeStart, setNewTimeStart] = useState("");
+  const [newTimeEnd, setNewTimeEnd] = useState("");
+  const [addingSession, setAddingSession] = useState(false);
+  const [sessionError, setSessionError] = useState("");
+
+  const dateToWords = (iso: string) => {
+    if (!iso) return "";
+    const d = new Date(iso + "T00:00:00");
+    return d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+  };
+
+  const dayName = (iso: string) => {
+    if (!iso) return "";
+    return new Date(iso + "T00:00:00").toLocaleDateString("en-IN", { weekday: "long" });
+  };
+
+  const timeOfDay = (t: string) => {
+    if (!t) return "";
+    const h = parseInt(t.split(":")[0], 10);
+    if (h >= 5 && h < 12) return "Morning";
+    if (h >= 12 && h < 17) return "Afternoon";
+    if (h >= 17 && h < 20) return "Evening";
+    return "Night";
+  };
+
+  const to12h = (t: string) => {
+    if (!t) return "";
+    const [h, m] = t.split(":").map(Number);
+    const ampm = h >= 12 ? "PM" : "AM";
+    const hour = h % 12 || 12;
+    return `${hour}:${String(m).padStart(2, "0")} ${ampm}`;
+  };
+
+  const buildTimeStr = () => {
+    if (!newTimeStart) return "";
+    if (!newTimeEnd) return `${to12h(newTimeStart)} IST`;
+    return `${to12h(newTimeStart)} - ${to12h(newTimeEnd)} IST`;
+  };
 
   useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
     setRefreshing(true);
     try {
-      const res = await fetch("/api/admin/registrations");
-      if (res.status === 401) { setView("login"); setRefreshing(false); return; }
-      const data = await res.json();
-      setRegistrations(data);
+      const [regRes, sessRes] = await Promise.all([
+        fetch("/api/admin/registrations"),
+        fetch("/api/admin/sessions"),
+      ]);
+      if (regRes.status === 401) { setView("login"); setRefreshing(false); return; }
+      const [regData, sessData] = await Promise.all([regRes.json(), sessRes.json()]);
+      setRegistrations(regData);
+      setSessions(Array.isArray(sessData) ? sessData : []);
       setView("dashboard");
     } catch {
       setView("login");
     }
     setRefreshing(false);
+  };
+
+  const toggleSession = async (id: number, is_active: boolean) => {
+    try {
+      const res = await fetch(`/api/admin/sessions/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_active }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setSessions((prev) => prev.map((s) => (s.id === id ? updated : s)));
+      }
+    } catch {}
+  };
+
+  const addSession = async (e: FormEvent) => {
+    e.preventDefault();
+    setSessionError("");
+    const time_str = buildTimeStr();
+    if (!newDatePicker || !newTimeStart || !newLabel.trim()) {
+      setSessionError("Date, start time, and label are required.");
+      return;
+    }
+    const starts_at_check = new Date(`${newDatePicker}T${newTimeStart}:00+05:30`);
+    if (starts_at_check < new Date()) {
+      setSessionError("Start time is in the past. Please choose a future date and time.");
+      return;
+    }
+    const date_str = dateToWords(newDatePicker);
+    const label = newLabel.trim();
+    const starts_at = newTimeStart ? `${newDatePicker}T${newTimeStart}:00+05:30` : null;
+    const ends_at = newTimeEnd ? `${newDatePicker}T${newTimeEnd}:00+05:30` : null;
+    setAddingSession(true);
+    try {
+      const res = await fetch("/api/admin/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label, date_str, time_str, starts_at, ends_at }),
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setSessions((prev) => [...prev, created]);
+        setNewLabel(""); setNewDatePicker(""); setNewTimeStart(""); setNewTimeEnd("");
+      } else {
+        setSessionError("Failed to add session.");
+      }
+    } catch {
+      setSessionError("Network error.");
+    }
+    setAddingSession(false);
   };
 
   const handleLogin = async (e: FormEvent) => {
@@ -61,7 +175,8 @@ export default function AdminPage() {
     setPassword("");
   };
 
-  const totalRevenue = registrations.reduce((sum, r) => sum + r.amount, 0) / 100;
+  const paidRegistrations = registrations.filter((r) => r.payment_status === "paid");
+  const totalRevenue = paidRegistrations.reduce((sum, r) => sum + r.amount, 0) / 100;
 
   // ── Loading ──────────────────────────────────────────────────────────────
   if (view === "loading") {
@@ -124,117 +239,310 @@ export default function AdminPage() {
       <div className="min-h-screen bg-[#F8F7F4]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
         {/* Header */}
-        <div className="bg-[#0D3535] px-4 py-4 shadow-md">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div>
-              <p style={{ fontFamily: "'Playfair Display', serif" }}
-                className="text-white font-bold text-lg">
-                RGB <span className="text-[#C8A043]">India</span> — Admin
-              </p>
-              <p className="text-white/50 text-xs mt-0.5">Webinar Registrations</p>
+        <div className="bg-[#0D3535] px-4 pt-4 shadow-md">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p style={{ fontFamily: "'Playfair Display', serif" }}
+                  className="text-white font-bold text-lg">
+                  RGB <span className="text-[#C8A043]">India</span> — Admin
+                </p>
+                <p className="text-white/50 text-xs mt-0.5">Webinar Dashboard</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={fetchData}
+                  disabled={refreshing}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-white/70 hover:text-white text-sm transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+                  Refresh
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-1.5 px-4 py-1.5 bg-white/10 hover:bg-white/20 text-white text-sm rounded-full transition-all"
+                >
+                  <LogOut className="w-3.5 h-3.5" /> Logout
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={fetchData}
-                disabled={refreshing}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-white/70 hover:text-white text-sm transition-colors disabled:opacity-50"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
-                Refresh
-              </button>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-1.5 px-4 py-1.5 bg-white/10 hover:bg-white/20 text-white text-sm rounded-full transition-all"
-              >
-                <LogOut className="w-3.5 h-3.5" /> Logout
-              </button>
+            {/* Tabs */}
+            <div className="flex gap-1">
+              {(["registrations", "sessions"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-4 py-2 text-sm font-semibold rounded-t-lg transition-colors ${
+                    activeTab === tab
+                      ? "bg-[#F8F7F4] text-[#0D3535]"
+                      : "text-white/60 hover:text-white"
+                  }`}
+                >
+                  {tab === "registrations" ? (
+                    <span className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5" /> Registrations</span>
+                  ) : (
+                    <span className="flex items-center gap-1.5"><CalendarDays className="w-3.5 h-3.5" /> Sessions</span>
+                  )}
+                </button>
+              ))}
             </div>
           </div>
         </div>
 
         <div className="max-w-7xl mx-auto px-4 py-6">
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-white rounded-2xl border border-[#D5D2CB] p-5 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-[#0D3535]/10 flex items-center justify-center">
-                <Users className="w-5 h-5 text-[#0D3535]" />
+          {activeTab === "registrations" && (
+            <>
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="bg-white rounded-2xl border border-[#D5D2CB] p-5 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-[#0D3535]/10 flex items-center justify-center">
+                    <Users className="w-5 h-5 text-[#0D3535]" />
+                  </div>
+                  <div>
+                    <p className="text-gray-500 text-xs font-bold uppercase tracking-wide">Registrations</p>
+                    <p className="text-3xl font-bold text-[#0D3535]">{paidRegistrations.length}</p>
+                    {registrations.length !== paidRegistrations.length && (
+                      <p className="text-xs text-red-400 mt-0.5">{registrations.length - paidRegistrations.length} failed</p>
+                    )}
+                  </div>
+                </div>
+                <div className="bg-white rounded-2xl border border-[#D5D2CB] p-5 flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-[#C8A043]/15 flex items-center justify-center">
+                    <IndianRupee className="w-5 h-5 text-[#C8A043]" />
+                  </div>
+                  <div>
+                    <p className="text-gray-500 text-xs font-bold uppercase tracking-wide">Total Revenue</p>
+                    <p className="text-3xl font-bold text-[#C8A043]">₹{totalRevenue.toLocaleString("en-IN")}</p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-gray-500 text-xs font-bold uppercase tracking-wide">Registrations</p>
-                <p className="text-3xl font-bold text-[#0D3535]">{registrations.length}</p>
-              </div>
-            </div>
-            <div className="bg-white rounded-2xl border border-[#D5D2CB] p-5 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-[#C8A043]/15 flex items-center justify-center">
-                <IndianRupee className="w-5 h-5 text-[#C8A043]" />
-              </div>
-              <div>
-                <p className="text-gray-500 text-xs font-bold uppercase tracking-wide">Total Revenue</p>
-                <p className="text-3xl font-bold text-[#C8A043]">₹{totalRevenue.toLocaleString("en-IN")}</p>
-              </div>
-            </div>
-          </div>
 
-          {/* Table */}
-          <div className="bg-white rounded-2xl border border-[#D5D2CB] overflow-hidden shadow-sm">
-            <div className="px-5 py-4 border-b border-[#F0EEE9] flex items-center justify-between">
-              <h2 className="font-bold text-[#0D3535] text-sm">All Registrations</h2>
-              <span className="text-xs text-gray-400">{registrations.length} total</span>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-[#F8F7F4]">
-                  <tr>
-                    {["#", "Name", "Company", "Designation", "Industry", "WhatsApp", "Email", "Payment ID", "Date"].map((h) => (
-                      <th
-                        key={h}
-                        className="text-left px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wide border-b border-[#F0EEE9]"
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#F8F7F4]">
-                  {registrations.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="px-4 py-12 text-center text-gray-400 text-sm">
-                        No registrations yet
-                      </td>
-                    </tr>
-                  ) : (
-                    registrations.map((r, i) => (
-                      <tr key={r.id} className="hover:bg-[#FAFAF8] transition-colors">
-                        <td className="px-4 py-3 text-gray-400 text-xs">{i + 1}</td>
-                        <td className="px-4 py-3 font-semibold text-[#0D3535]">{r.name}</td>
-                        <td className="px-4 py-3 text-gray-500 text-xs">{r.company || "—"}</td>
-                        <td className="px-4 py-3 text-gray-500 text-xs">{r.designation || "—"}</td>
-                        <td className="px-4 py-3 text-gray-500 text-xs">{r.industry || "—"}</td>
-                        <td className="px-4 py-3">
-                          <a href={`tel:${r.whatsapp}`} className="text-[#0D3535] hover:text-[#C8A043] transition-colors font-medium">
-                            {r.whatsapp}
-                          </a>
-                        </td>
-                        <td className="px-4 py-3">
-                          <a href={`mailto:${r.email}`} className="text-[#0D3535] hover:text-[#C8A043] transition-colors">
-                            {r.email}
-                          </a>
-                        </td>
-                        <td className="px-4 py-3 font-mono text-xs text-gray-400">{r.razorpay_payment_id || "—"}</td>
-                        <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                          {new Date(r.created_at).toLocaleString("en-IN", {
-                            day: "2-digit", month: "short", year: "numeric",
-                            hour: "2-digit", minute: "2-digit",
-                          })}
-                        </td>
+              {/* Registrations Table */}
+              <div className="bg-white rounded-2xl border border-[#D5D2CB] overflow-hidden shadow-sm">
+                <div className="px-5 py-4 border-b border-[#F0EEE9] flex items-center justify-between">
+                  <h2 className="font-bold text-[#0D3535] text-sm">All Registrations</h2>
+                  <span className="text-xs text-gray-400">{registrations.length} total</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-[#F8F7F4]">
+                      <tr>
+                        {["#", "Name", "Company", "Designation", "Industry", "WhatsApp", "Email", "Session", "Status", "Payment ID", "Date"].map((h) => (
+                          <th
+                            key={h}
+                            className="text-left px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wide border-b border-[#F0EEE9]"
+                          >
+                            {h}
+                          </th>
+                        ))}
                       </tr>
-                    ))
+                    </thead>
+                    <tbody className="divide-y divide-[#F8F7F4]">
+                      {registrations.length === 0 ? (
+                        <tr>
+                          <td colSpan={11} className="px-4 py-12 text-center text-gray-400 text-sm">
+                            No registrations yet
+                          </td>
+                        </tr>
+                      ) : (
+                        registrations.map((r, i) => (
+                          <tr key={r.id} className="hover:bg-[#FAFAF8] transition-colors">
+                            <td className="px-4 py-3 text-gray-400 text-xs">{i + 1}</td>
+                            <td className="px-4 py-3 font-semibold text-[#0D3535]">{r.name}</td>
+                            <td className="px-4 py-3 text-gray-500 text-xs">{r.company || "—"}</td>
+                            <td className="px-4 py-3 text-gray-500 text-xs">{r.designation || "—"}</td>
+                            <td className="px-4 py-3 text-gray-500 text-xs">{r.industry || "—"}</td>
+                            <td className="px-4 py-3">
+                              <a href={`tel:${r.whatsapp}`} className="text-[#0D3535] hover:text-[#C8A043] transition-colors font-medium">
+                                {r.whatsapp}
+                              </a>
+                            </td>
+                            <td className="px-4 py-3">
+                              <a href={`mailto:${r.email}`} className="text-[#0D3535] hover:text-[#C8A043] transition-colors">
+                                {r.email}
+                              </a>
+                            </td>
+                            <td className="px-4 py-3">
+                              {r.session_label ? (
+                                <div>
+                                  <p className="text-xs font-semibold text-[#0D3535]">{r.session_label}</p>
+                                  <p className="text-xs text-gray-400">{r.session_date}</p>
+                                </div>
+                              ) : (
+                                <span className="text-gray-400 text-xs">—</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${
+                                r.payment_status === "paid"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-red-100 text-red-600"
+                              }`}>
+                                {r.payment_status === "paid" ? "✓ Paid" : "✗ Failed"}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 font-mono text-xs text-gray-400">{r.razorpay_payment_id || "—"}</td>
+                            <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+                              {new Date(r.created_at).toLocaleString("en-IN", {
+                                day: "2-digit", month: "short", year: "numeric",
+                                hour: "2-digit", minute: "2-digit",
+                              })}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === "sessions" && (
+            <div className="space-y-6">
+              {/* Add Session */}
+              <div className="bg-white rounded-2xl border border-[#D5D2CB] p-6 shadow-sm">
+                <h2 className="font-bold text-[#0D3535] text-sm mb-4">Add New Session</h2>
+                <form onSubmit={addSession} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">
+                      Date <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={newDatePicker}
+                      min={new Date().toISOString().split("T")[0]}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setNewDatePicker(val);
+                        if (val && newTimeStart) {
+                          setNewLabel(`${dayName(val)} ${timeOfDay(newTimeStart)}`);
+                        }
+                      }}
+                      className="w-full px-3 py-2 rounded-xl border border-[#D5D2CB] text-sm outline-none focus:ring-2 focus:ring-[#C8A043]"
+                    />
+                    {newDatePicker && (
+                      <p className="text-xs text-[#0D3535] mt-1 font-medium">{dateToWords(newDatePicker)}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">
+                      Start Time <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="time"
+                      value={newTimeStart}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setNewTimeStart(val);
+                        if (val) {
+                          const [h, m] = val.split(":").map(Number);
+                          const end = new Date(0, 0, 0, h, m + 60);
+                          setNewTimeEnd(`${String(end.getHours()).padStart(2, "0")}:${String(end.getMinutes()).padStart(2, "0")}`);
+                          const day = newDatePicker ? dayName(newDatePicker) : "";
+                          setNewLabel(`${day}${day ? " " : ""}${timeOfDay(val)}`);
+                        }
+                      }}
+                      className="w-full px-3 py-2 rounded-xl border border-[#D5D2CB] text-sm outline-none focus:ring-2 focus:ring-[#C8A043]"
+                    />
+                    {newTimeStart && (
+                      <p className="text-xs text-[#0D3535] mt-1 font-medium">{to12h(newTimeStart)}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">
+                      End Time <span className="text-gray-300">(optional)</span>
+                    </label>
+                    <input
+                      type="time"
+                      value={newTimeEnd}
+                      onChange={(e) => setNewTimeEnd(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-[#D5D2CB] text-sm outline-none focus:ring-2 focus:ring-[#C8A043]"
+                    />
+                    {newTimeEnd && (
+                      <p className="text-xs text-[#0D3535] mt-1 font-medium">{to12h(newTimeEnd)}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">
+                      Label <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      value={newLabel}
+                      onChange={(e) => setNewLabel(e.target.value)}
+                      placeholder="e.g. Sunday Morning"
+                      className="w-full px-3 py-2 rounded-xl border border-[#D5D2CB] text-sm outline-none focus:ring-2 focus:ring-[#C8A043]"
+                    />
+                  </div>
+                  {(newDatePicker || newTimeStart) && (
+                    <div className="sm:col-span-2 lg:col-span-4 px-4 py-3 bg-[#F8F7F4] rounded-xl border border-[#D5D2CB] text-sm text-[#0D3535]">
+                      <span className="font-bold">Preview: </span>
+                      {[newLabel.trim(), dateToWords(newDatePicker), buildTimeStr()].filter(Boolean).join(" · ")}
+                    </div>
                   )}
-                </tbody>
-              </table>
+                  {sessionError && (
+                    <p className="sm:col-span-2 lg:col-span-4 text-red-500 text-xs bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                      {sessionError}
+                    </p>
+                  )}
+                  <div className="sm:col-span-2 lg:col-span-4">
+                    <button
+                      type="submit"
+                      disabled={addingSession}
+                      className="flex items-center gap-1.5 px-5 py-2 bg-[#0D3535] text-white rounded-xl font-semibold text-sm hover:bg-[#0D3535]/90 transition-all disabled:opacity-60"
+                    >
+                      <Plus className="w-4 h-4" /> {addingSession ? "Adding..." : "Add Session"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Sessions List */}
+              <div className="bg-white rounded-2xl border border-[#D5D2CB] overflow-hidden shadow-sm">
+                <div className="px-5 py-4 border-b border-[#F0EEE9]">
+                  <h2 className="font-bold text-[#0D3535] text-sm">All Sessions</h2>
+                </div>
+                {sessions.length === 0 ? (
+                  <p className="px-5 py-10 text-center text-gray-400 text-sm">No sessions yet</p>
+                ) : (
+                  <div className="divide-y divide-[#F8F7F4]">
+                    {sessions.map((s) => {
+                      const expired = s.ends_at ? new Date(s.ends_at) < new Date() : false;
+                      return (
+                        <div key={s.id} className={`px-5 py-4 flex items-center justify-between ${expired ? "opacity-50" : ""}`}>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold text-[#0D3535] text-sm">{s.label}</p>
+                              {expired && (
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-400 font-medium">Expired</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-0.5">{s.date_str} · {s.time_str}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              {registrations.filter((r) => r.session_label === s.label).length} registrations
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => toggleSession(s.id, !s.is_active)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                              s.is_active && !expired
+                                ? "bg-[#0D3535]/10 text-[#0D3535] hover:bg-red-50 hover:text-red-600"
+                                : "bg-gray-100 text-gray-400 hover:bg-[#0D3535]/10 hover:text-[#0D3535]"
+                            }`}
+                          >
+                            {s.is_active && !expired ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+                            {s.is_active && !expired ? "Active" : "Inactive"}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
+
         </div>
       </div>
     </>

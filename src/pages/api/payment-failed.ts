@@ -1,5 +1,4 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import crypto from "crypto";
 import { query } from "@/lib/db";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -8,7 +7,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const {
     razorpay_order_id,
     razorpay_payment_id,
-    razorpay_signature,
     name,
     whatsapp,
     email,
@@ -18,25 +16,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     session_id,
   } = req.body;
 
-  const expected = crypto
-    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
-    .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-    .digest("hex");
-
-  if (expected !== razorpay_signature) {
-    return res.status(400).json({ error: "Invalid payment signature" });
-  }
+  if (!razorpay_order_id) return res.status(400).json({ error: "order_id required" });
 
   try {
     await query(
       `INSERT INTO registrations (name, company, designation, industry, whatsapp, email, razorpay_order_id, razorpay_payment_id, session_id, payment_status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'paid')
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'failed')
        ON CONFLICT (razorpay_payment_id) DO NOTHING`,
-      [name || "Unknown", company || null, designation || null, industry || null, whatsapp || "", email || "", razorpay_order_id, razorpay_payment_id, session_id || null]
+      [name || "Unknown", company || null, designation || null, industry || null, whatsapp || "", email || "", razorpay_order_id, razorpay_payment_id || null, session_id || null]
     );
   } catch (err) {
-    console.error("DB save error (payment still valid):", err);
+    console.error("DB save error (failed payment):", err);
   }
 
-  res.json({ success: true });
+  res.json({ received: true });
 }

@@ -8,10 +8,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const result = await query(
-      `SELECT id, name, company, designation, industry, whatsapp, email,
-              razorpay_order_id, razorpay_payment_id, amount, created_at
-       FROM registrations
-       ORDER BY created_at DESC`
+      `SELECT r.id, r.name, r.company, r.designation, r.industry, r.whatsapp, r.email,
+              r.razorpay_order_id, r.razorpay_payment_id, r.amount, r.payment_status, r.created_at,
+              s.label AS session_label, s.date_str AS session_date, s.time_str AS session_time
+       FROM registrations r
+       LEFT JOIN sessions s ON r.session_id = s.id
+       ORDER BY r.created_at DESC`
     );
     res.json(result.rows);
   } catch (err) {
