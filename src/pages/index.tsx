@@ -273,15 +273,15 @@ export default function Home() {
                   <span className="w-1.5 h-1.5 rounded-full bg-[#C8A043] animate-pulse" />
                   <span className="text-xs font-bold text-[#C8A043] tracking-wider uppercase">Live Webinar</span>
                 </div>
-                <p className="text-gray-700 text-base font-semibold leading-snug mb-2">
-                  Your Business Is Growing, But Is It Still Depending Too Much on You?
-                </p>
                 <h2
                   style={{ fontFamily: "'Playfair Display', serif" }}
                   className="text-3xl md:text-4xl font-bold text-[#0D3535] mb-3 leading-tight"
                 >
-                  Growth by Design<br />Masterclass
+                  Your Business Is Growing, But Is It Still Depending Too Much on You?
                 </h2>
+                <p className="text-gray-500 text-sm font-semibold uppercase tracking-widest mb-3">
+                  Growth by Design Masterclass
+                </p>
                 <p className="text-gray-600 text-sm leading-relaxed mb-5">
                   A 60-minute live session with Shri Rakesh Jain for business owners who want stronger revenue, better cash flow, responsible teams, reduced owner dependency, and more time with better control.
                 </p>
