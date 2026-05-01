@@ -445,11 +445,11 @@ export default function Home() {
                           </button>
 
                           <div className="flex items-center justify-center gap-4 pt-1">
-                            <div className="flex items-center gap-1.5 text-white/40 text-xs">
+                            <div className="flex items-center gap-1.5 text-white text-xs">
                               <ShieldCheck className="w-3.5 h-3.5" /> Secure payment
                             </div>
-                            <div className="w-px h-3 bg-white/20" />
-                            <div className="text-white/40 text-xs">Powered by Razorpay</div>
+                            <div className="w-px h-3 bg-white/30" />
+                            <div className="text-white text-xs">Powered by Razorpay</div>
                           </div>
                         </form>
                       </motion.div>
