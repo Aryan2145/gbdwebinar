@@ -8,7 +8,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const result = await query(
-      `SELECT id, name, company, whatsapp, email,
+      `SELECT id, name, company, designation, industry, whatsapp, email,
               razorpay_order_id, razorpay_payment_id, amount, created_at
        FROM registrations
        ORDER BY created_at DESC`

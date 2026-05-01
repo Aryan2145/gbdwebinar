@@ -2,6 +2,8 @@ CREATE TABLE IF NOT EXISTS registrations (
   id                  SERIAL PRIMARY KEY,
   name                VARCHAR(255) NOT NULL,
   company             VARCHAR(255),
+  designation         VARCHAR(255),
+  industry            VARCHAR(255),
   whatsapp            VARCHAR(20)  NOT NULL,
   email               VARCHAR(255) NOT NULL,
   razorpay_order_id   VARCHAR(100),

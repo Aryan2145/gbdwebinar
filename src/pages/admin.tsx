@@ -6,6 +6,8 @@ type Registration = {
   id: number;
   name: string;
   company: string | null;
+  designation: string | null;
+  industry: string | null;
   whatsapp: string;
   email: string;
   razorpay_order_id: string;
@@ -184,7 +186,7 @@ export default function AdminPage() {
               <table className="w-full text-sm">
                 <thead className="bg-[#F8F7F4]">
                   <tr>
-                    {["#", "Name", "Company", "WhatsApp", "Email", "Payment ID", "Date"].map((h) => (
+                    {["#", "Name", "Company", "Designation", "Industry", "WhatsApp", "Email", "Payment ID", "Date"].map((h) => (
                       <th
                         key={h}
                         className="text-left px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wide border-b border-[#F0EEE9]"
@@ -197,7 +199,7 @@ export default function AdminPage() {
                 <tbody className="divide-y divide-[#F8F7F4]">
                   {registrations.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-4 py-12 text-center text-gray-400 text-sm">
+                      <td colSpan={9} className="px-4 py-12 text-center text-gray-400 text-sm">
                         No registrations yet
                       </td>
                     </tr>
@@ -207,6 +209,8 @@ export default function AdminPage() {
                         <td className="px-4 py-3 text-gray-400 text-xs">{i + 1}</td>
                         <td className="px-4 py-3 font-semibold text-[#0D3535]">{r.name}</td>
                         <td className="px-4 py-3 text-gray-500 text-xs">{r.company || "—"}</td>
+                        <td className="px-4 py-3 text-gray-500 text-xs">{r.designation || "—"}</td>
+                        <td className="px-4 py-3 text-gray-500 text-xs">{r.industry || "—"}</td>
                         <td className="px-4 py-3">
                           <a href={`tel:${r.whatsapp}`} className="text-[#0D3535] hover:text-[#C8A043] transition-colors font-medium">
                             {r.whatsapp}

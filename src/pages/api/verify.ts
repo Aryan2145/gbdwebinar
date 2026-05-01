@@ -13,6 +13,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     whatsapp,
     email,
     company,
+    designation,
+    industry,
   } = req.body;
 
   const expected = crypto
@@ -26,10 +28,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     await query(
-      `INSERT INTO registrations (name, company, whatsapp, email, razorpay_order_id, razorpay_payment_id)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO registrations (name, company, designation, industry, whatsapp, email, razorpay_order_id, razorpay_payment_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        ON CONFLICT (razorpay_payment_id) DO NOTHING`,
-      [name || "Unknown", company || null, whatsapp || "", email || "", razorpay_order_id, razorpay_payment_id]
+      [name || "Unknown", company || null, designation || null, industry || null, whatsapp || "", email || "", razorpay_order_id, razorpay_payment_id]
     );
   } catch (err) {
     console.error("DB save error (payment still valid):", err);

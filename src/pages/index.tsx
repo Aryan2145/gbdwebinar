@@ -54,6 +54,8 @@ export default function Home() {
   const [payWhatsapp, setPayWhatsapp] = useState("");
   const [payEmail, setPayEmail] = useState("");
   const [payCompany, setPayCompany] = useState("");
+  const [payDesignation, setPayDesignation] = useState("");
+  const [payIndustry, setPayIndustry] = useState("");
   const [payLoading, setPayLoading] = useState(false);
   const [paySuccess, setPaySuccess] = useState(false);
   const [payError, setPayError] = useState("");
@@ -120,6 +122,8 @@ export default function Home() {
     e.preventDefault();
     setPayError("");
     if (!payName.trim()) { setPayError("Please enter your full name."); return; }
+    if (!payCompany.trim()) { setPayError("Please enter your company name."); return; }
+    if (!payDesignation.trim()) { setPayError("Please enter your designation."); return; }
     if (payWhatsapp.replace(/\D/g, "").length < 10) {
       setPayError("Please enter a valid 10-digit WhatsApp number."); return;
     }
@@ -162,6 +166,8 @@ export default function Home() {
               whatsapp: payWhatsapp,
               email: payEmail,
               company: payCompany,
+              designation: payDesignation,
+              industry: payIndustry,
             }),
           });
           const data = await verify.json();
@@ -349,12 +355,39 @@ export default function Home() {
                               />
                             </div>
                             <div className="space-y-1.5">
-                              <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">Company Name</label>
+                              <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                                Company Name <span className="text-red-500">*</span>
+                              </label>
                               <input
                                 value={payCompany}
                                 onChange={(e) => setPayCompany(e.target.value)}
                                 className={inp}
-                                placeholder="Your company (optional)"
+                                placeholder="Your company"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid sm:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                                Designation <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                value={payDesignation}
+                                onChange={(e) => setPayDesignation(e.target.value)}
+                                className={inp}
+                                placeholder="e.g. Managing Director"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                                Industry
+                              </label>
+                              <input
+                                value={payIndustry}
+                                onChange={(e) => setPayIndustry(e.target.value)}
+                                className={inp}
+                                placeholder="e.g. Manufacturing (optional)"
                               />
                             </div>
                           </div>
