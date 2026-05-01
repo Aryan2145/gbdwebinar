@@ -301,7 +301,7 @@ export default function Home() {
 
               {/* Right: Form */}
               <div className="lg:col-span-3">
-                <div className="bg-white rounded-2xl border border-[#D5D2CB] shadow-sm p-6 md:p-8">
+                <div className="bg-[#0D3535] rounded-2xl border border-white/20 shadow-xl p-6 md:p-8">
                   <AnimatePresence mode="wait">
                     {paySuccess ? (
                       <motion.div
@@ -310,20 +310,20 @@ export default function Home() {
                         animate={{ opacity: 1, scale: 1 }}
                         className="text-center py-8"
                       >
-                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <CheckCircle2 className="w-8 h-8 text-green-600" />
+                        <div className="w-16 h-16 bg-[#C8A043]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <CheckCircle2 className="w-8 h-8 text-[#C8A043]" />
                         </div>
                         <h3
                           style={{ fontFamily: "'Playfair Display', serif" }}
-                          className="text-2xl font-bold text-[#0D3535] mb-2"
+                          className="text-2xl font-bold text-[#C8A043] mb-2"
                         >
                           You&apos;re Registered!
                         </h3>
-                        <p className="text-gray-600 text-sm mb-1">Your payment of <strong>₹99</strong> is confirmed.</p>
-                        <p className="text-gray-600 text-sm mb-6">
+                        <p className="text-white/70 text-sm mb-1">Your payment of <strong className="text-white">₹99</strong> is confirmed.</p>
+                        <p className="text-white/70 text-sm mb-6">
                           Webinar access details will be sent to your WhatsApp number shortly.
                         </p>
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-50 border border-green-200 text-green-700 text-xs font-semibold">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#C8A043]/20 border border-[#C8A043]/40 text-[#C8A043] text-xs font-semibold">
                           <ShieldCheck className="w-4 h-4" /> Payment Verified &amp; Confirmed
                         </div>
                       </motion.div>
@@ -331,20 +331,25 @@ export default function Home() {
                       <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                         <div className="mb-5">
                           <div className="flex items-center justify-between mb-1">
-                            <h3 className="text-xl font-bold text-[#0D3535]">Register Now</h3>
-                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C8A043]/10 border border-[#C8A043]/20">
+                            <h3
+                              style={{ fontFamily: "'Playfair Display', serif" }}
+                              className="text-xl font-bold text-[#C8A043]"
+                            >
+                              Register Now
+                            </h3>
+                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C8A043]/20 border border-[#C8A043]/40">
                               <span className="text-[#C8A043] font-black text-sm">₹99</span>
-                              <span className="text-gray-500 text-xs">only</span>
+                              <span className="text-white/60 text-xs">only</span>
                             </div>
                           </div>
-                          <p className="text-gray-500 text-xs">Secure payment via Razorpay. Details sent on WhatsApp.</p>
+                          <p className="text-white/60 text-xs">Secure payment via Razorpay. Details sent on WhatsApp.</p>
                         </div>
 
                         <form onSubmit={handlePaySubmit} className="space-y-4">
                           <div className="grid sm:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                              <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
-                                Full Name <span className="text-red-500">*</span>
+                              <label className="text-xs font-bold text-white/80 uppercase tracking-wide">
+                                Full Name <span className="text-[#C8A043]">*</span>
                               </label>
                               <input
                                 value={payName}
@@ -355,8 +360,8 @@ export default function Home() {
                               />
                             </div>
                             <div className="space-y-1.5">
-                              <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
-                                Company Name <span className="text-red-500">*</span>
+                              <label className="text-xs font-bold text-white/80 uppercase tracking-wide">
+                                Company Name <span className="text-[#C8A043]">*</span>
                               </label>
                               <input
                                 value={payCompany}
@@ -369,8 +374,8 @@ export default function Home() {
 
                           <div className="grid sm:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                              <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
-                                Designation <span className="text-red-500">*</span>
+                              <label className="text-xs font-bold text-white/80 uppercase tracking-wide">
+                                Designation <span className="text-[#C8A043]">*</span>
                               </label>
                               <input
                                 value={payDesignation}
@@ -380,7 +385,7 @@ export default function Home() {
                               />
                             </div>
                             <div className="space-y-1.5">
-                              <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                              <label className="text-xs font-bold text-white/80 uppercase tracking-wide">
                                 Industry
                               </label>
                               <input
@@ -394,8 +399,8 @@ export default function Home() {
 
                           <div className="grid sm:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                              <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
-                                WhatsApp Number <span className="text-red-500">*</span>
+                              <label className="text-xs font-bold text-white/80 uppercase tracking-wide">
+                                WhatsApp Number <span className="text-[#C8A043]">*</span>
                               </label>
                               <input
                                 value={payWhatsapp}
@@ -407,8 +412,8 @@ export default function Home() {
                               />
                             </div>
                             <div className="space-y-1.5">
-                              <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">
-                                Email Address <span className="text-red-500">*</span>
+                              <label className="text-xs font-bold text-white/80 uppercase tracking-wide">
+                                Email Address <span className="text-[#C8A043]">*</span>
                               </label>
                               <input
                                 value={payEmail}
@@ -422,7 +427,7 @@ export default function Home() {
                           </div>
 
                           {payError && (
-                            <p className="text-red-500 text-xs bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                            <p className="text-red-300 text-xs bg-red-900/30 border border-red-400/30 rounded-lg px-3 py-2">
                               {payError}
                             </p>
                           )}
@@ -430,7 +435,7 @@ export default function Home() {
                           <button
                             type="submit"
                             disabled={payLoading}
-                            className="w-full py-3.5 bg-[#0D3535] text-white rounded-xl font-bold text-base hover:bg-[#0D3535]/90 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0 shadow-md flex items-center justify-center gap-2"
+                            className="w-full py-3.5 bg-[#C8A043] text-white rounded-xl font-bold text-base hover:bg-[#C8A043]/90 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0 shadow-lg shadow-[#C8A043]/20 flex items-center justify-center gap-2"
                           >
                             {payLoading ? (
                               <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
@@ -440,11 +445,11 @@ export default function Home() {
                           </button>
 
                           <div className="flex items-center justify-center gap-4 pt-1">
-                            <div className="flex items-center gap-1.5 text-gray-400 text-xs">
+                            <div className="flex items-center gap-1.5 text-white/40 text-xs">
                               <ShieldCheck className="w-3.5 h-3.5" /> Secure payment
                             </div>
-                            <div className="w-px h-3 bg-gray-200" />
-                            <div className="text-gray-400 text-xs">Powered by Razorpay</div>
+                            <div className="w-px h-3 bg-white/20" />
+                            <div className="text-white/40 text-xs">Powered by Razorpay</div>
                           </div>
                         </form>
                       </motion.div>
