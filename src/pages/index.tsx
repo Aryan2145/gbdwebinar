@@ -237,7 +237,12 @@ export default function Home() {
 
   const scrollToRegister = (e: React.MouseEvent) => {
     e.preventDefault();
-    document.getElementById("register")?.scrollIntoView({ behavior: "smooth" });
+    const target = window.innerWidth < 1024
+      ? document.getElementById("register-form")
+      : document.getElementById("register");
+    if (!target) return;
+    const top = target.getBoundingClientRect().top + window.scrollY - 70;
+    window.scrollTo({ top, behavior: "smooth" });
   };
 
   // ── Handlers ──────────────────────────────────────────────────────────────
@@ -451,7 +456,7 @@ export default function Home() {
               </div>
 
               {/* Right: Form */}
-              <div className="lg:col-span-3">
+              <div id="register-form" className="lg:col-span-3">
                 <div className="bg-[#0D3535] rounded-2xl border border-white/20 shadow-xl p-6 md:p-8">
                   <AnimatePresence mode="wait">
                     {paySuccess ? (
