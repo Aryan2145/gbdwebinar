@@ -47,6 +47,9 @@ const inp =
   "w-full px-4 py-3 rounded-xl bg-white border border-[#D5D2CB] focus:ring-2 focus:ring-[#C8A043] focus:border-[#C8A043] transition-all outline-none text-sm text-gray-800";
 
 const LAYERS_COUNT = 5;
+const PROBLEMS_COUNT = 6;
+const DIFF_COUNT = 2;
+const OUTCOMES_COUNT = 6;
 
 type Session = { id: number; label: string; date_str: string; time_str: string; starts_at: string | null };
 
@@ -96,15 +99,36 @@ export default function Home() {
 
   // ── Framework layer ───────────────────────────────────────────────────────
   const [activeLayer, setActiveLayer] = useState<number | null>(null);
+  const [activeProblem, setActiveProblem] = useState<number | null>(null);
+  const [activeDiff, setActiveDiff] = useState<number | null>(null);
+  const [activeOutcome, setActiveOutcome] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const isScrollingRef = useRef(false);
   const layerRefs = useRef<(HTMLDivElement | null)[]>(Array(LAYERS_COUNT).fill(null));
   const ratiosRef = useRef<number[]>(Array(LAYERS_COUNT).fill(0));
+  const problemRefs = useRef<(HTMLDivElement | null)[]>(Array(PROBLEMS_COUNT).fill(null));
+  const problemRatiosRef = useRef<number[]>(Array(PROBLEMS_COUNT).fill(0));
+  const diffRefs = useRef<(HTMLDivElement | null)[]>(Array(DIFF_COUNT).fill(null));
+  const diffRatiosRef = useRef<number[]>(Array(DIFF_COUNT).fill(0));
+  const outcomeRefs = useRef<(HTMLDivElement | null)[]>(Array(OUTCOMES_COUNT).fill(null));
+  const outcomeRatiosRef = useRef<number[]>(Array(OUTCOMES_COUNT).fill(0));
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 1024);
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
+  }, []);
+
+  useEffect(() => {
+    const onTouchStart = () => { isScrollingRef.current = false; };
+    const onTouchMove = () => { isScrollingRef.current = true; };
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+    };
   }, []);
 
   useEffect(() => {
@@ -115,14 +139,82 @@ export default function Home() {
       if (!ref) return;
       const obs = new IntersectionObserver(
         ([entry]) => {
+          if (!isScrollingRef.current) return;
           ratiosRef.current[i] = entry.intersectionRatio;
           const max = Math.max(...ratiosRef.current);
-          if (max > 0.2) setActiveLayer(ratiosRef.current.indexOf(max));
+          if (max > 0.4) setActiveLayer(ratiosRef.current.indexOf(max));
+          else setActiveLayer(null);
         },
         {
           threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
-          rootMargin: "-15% 0px -15% 0px",
+          rootMargin: "-25% 0px -25% 0px",
         }
+      );
+      obs.observe(ref);
+      observers.push(obs);
+    });
+    return () => observers.forEach((o) => o.disconnect());
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (!isMobile) { setActiveProblem(null); return; }
+    problemRatiosRef.current = Array(PROBLEMS_COUNT).fill(0);
+    const observers: IntersectionObserver[] = [];
+    problemRefs.current.forEach((ref, i) => {
+      if (!ref) return;
+      const obs = new IntersectionObserver(
+        ([entry]) => {
+          if (!isScrollingRef.current) return;
+          problemRatiosRef.current[i] = entry.intersectionRatio;
+          const max = Math.max(...problemRatiosRef.current);
+          if (max > 0.4) setActiveProblem(problemRatiosRef.current.indexOf(max));
+          else setActiveProblem(null);
+        },
+        { threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1], rootMargin: "-25% 0px -25% 0px" }
+      );
+      obs.observe(ref);
+      observers.push(obs);
+    });
+    return () => observers.forEach((o) => o.disconnect());
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (!isMobile) { setActiveDiff(null); return; }
+    diffRatiosRef.current = Array(DIFF_COUNT).fill(0);
+    const observers: IntersectionObserver[] = [];
+    diffRefs.current.forEach((ref, i) => {
+      if (!ref) return;
+      const obs = new IntersectionObserver(
+        ([entry]) => {
+          if (!isScrollingRef.current) return;
+          diffRatiosRef.current[i] = entry.intersectionRatio;
+          const max = Math.max(...diffRatiosRef.current);
+          if (max > 0.4) setActiveDiff(diffRatiosRef.current.indexOf(max));
+          else setActiveDiff(null);
+        },
+        { threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1], rootMargin: "-25% 0px -25% 0px" }
+      );
+      obs.observe(ref);
+      observers.push(obs);
+    });
+    return () => observers.forEach((o) => o.disconnect());
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (!isMobile) { setActiveOutcome(null); return; }
+    outcomeRatiosRef.current = Array(OUTCOMES_COUNT).fill(0);
+    const observers: IntersectionObserver[] = [];
+    outcomeRefs.current.forEach((ref, i) => {
+      if (!ref) return;
+      const obs = new IntersectionObserver(
+        ([entry]) => {
+          if (!isScrollingRef.current) return;
+          outcomeRatiosRef.current[i] = entry.intersectionRatio;
+          const max = Math.max(...outcomeRatiosRef.current);
+          if (max > 0.4) setActiveOutcome(outcomeRatiosRef.current.indexOf(max));
+          else setActiveOutcome(null);
+        },
+        { threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1], rootMargin: "-25% 0px -25% 0px" }
       );
       obs.observe(ref);
       observers.push(obs);
@@ -306,7 +398,7 @@ export default function Home() {
         {/* ── SECTION 0: PAYMENT / REGISTER ── */}
         <section id="register" className="bg-[#F8F7F4] border-b border-[#D5D2CB] py-10 md:py-14">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid lg:grid-cols-5 gap-8 items-center">
+            <div className="grid lg:grid-cols-5 gap-8 items-start">
 
               {/* Left: Info */}
               <div className="lg:col-span-2">
@@ -316,7 +408,7 @@ export default function Home() {
                 </div>
                 <h2
                   style={{ fontFamily: "'Playfair Display', serif" }}
-                  className="text-2xl md:text-3xl font-bold text-[#0D3535] mb-3 leading-snug"
+                  className="text-[1.725rem] md:text-[2.15rem] font-bold text-[#0D3535] mb-3 leading-snug"
                 >
                   Your Business Is Growing, But Is It Still Depending Too Much on You?
                 </h2>
@@ -497,8 +589,8 @@ export default function Home() {
                             <label className="text-xs font-bold text-white/80 uppercase tracking-wide">
                               Number of Tickets
                             </label>
-                            <div className="flex flex-wrap gap-2">
-                              {[1,2,3,4,5,6,7,8,9,10].map((n) => (
+                            <div className="flex gap-1.5 sm:gap-2">
+                              {[1,2,3,4,5,6,7].map((n) => (
                                 <button
                                   key={n}
                                   type="button"
@@ -506,7 +598,7 @@ export default function Home() {
                                     setPayQuantity(n);
                                     setAdditionalNames(Array(Math.max(0, n - 1)).fill(""));
                                   }}
-                                  className={`w-9 h-9 rounded-lg text-sm font-bold transition-all ${
+                                  className={`flex-1 h-8 sm:h-9 rounded-lg text-xs sm:text-sm font-bold transition-all min-w-0 ${
                                     payQuantity === n
                                       ? "bg-[#C8A043] text-[#0D3535]"
                                       : "bg-white/10 text-white hover:bg-white/20"
@@ -589,12 +681,12 @@ export default function Home() {
         </section>
 
         {/* ── SECTION 1: HERO ── */}
-        <section className="relative pt-16 pb-0 bg-[#0D3535] overflow-hidden">
+        <section className="relative pt-8 pb-10 lg:pb-0 bg-[#0D3535] overflow-hidden">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid lg:grid-cols-2 items-end gap-0">
+            <div className="grid lg:grid-cols-2 items-start gap-0">
 
               {/* Left */}
-              <FadeIn className="py-8 lg:py-10 pr-0 lg:pr-8">
+              <FadeIn className="py-4 lg:py-6 pr-0 lg:pr-8">
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#C8A043] mb-4">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#0D3535] animate-pulse" />
                   <span className="text-sm font-black text-[#0D3535] tracking-wide uppercase">
@@ -648,25 +740,19 @@ export default function Home() {
                   >
                     Register Now <ArrowRight className="w-4 h-4" />
                   </button>
-                  <a
-                    href="tel:+917878038514"
-                    className="inline-flex items-center gap-2 text-white hover:text-[#C8A043] transition-colors text-sm font-medium self-center"
-                  >
-                    <Phone className="w-4 h-4" /> 78780 38514
-                  </a>
                 </div>
               </FadeIn>
 
               {/* Right: Founder photo */}
-              <FadeIn delay={0.15} className="flex justify-center lg:justify-end items-end pt-4 lg:pt-0">
-                <div className="relative w-full max-w-sm lg:max-w-md xl:max-w-lg">
+              <FadeIn delay={0.15} className="flex justify-center lg:justify-end items-end -mt-8 lg:-mt-16 lg:pt-0">
+                <div className="relative w-full max-w-sm lg:max-w-md xl:max-w-lg pb-6 lg:pb-0">
                   <div className="absolute -inset-8 bg-[#C8A043]/10 rounded-full blur-3xl opacity-60 pointer-events-none" />
                   <img
                     src="/founder.png"
                     alt="Shri Rakesh Jain — Founder, RGB Business Growth Consulting"
                     className="relative z-10 w-full h-auto object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
                   />
-                  <div className="absolute bottom-4 left-3 right-3 z-20 bg-[#0D3535]/85 backdrop-blur-md border border-white/20 rounded-2xl px-4 py-3 text-center">
+                  <div className="absolute -bottom-4 left-3 right-3 z-20 bg-[#0D3535]/85 backdrop-blur-md border border-white/20 rounded-2xl px-4 py-3 text-center">
                     <p className="text-[#C8A043] text-[11px] font-bold tracking-widest uppercase mb-1">Business Guru</p>
                     <p
                       style={{ fontFamily: "'Playfair Display', serif" }}
@@ -698,26 +784,37 @@ export default function Home() {
             </FadeIn>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 [grid-auto-rows:1fr]">
-              {problems.map((problem, i) => (
-                <FadeIn key={i} delay={0.06 * i} className="h-full">
-                  <div className="group bg-[#E8E5DF] border border-[#CCCAC3] rounded-2xl p-5 h-full hover:bg-[#0D3535] hover:border-[#0D3535] hover:shadow-lg transition-all duration-500 cursor-default">
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <h3 className="font-bold text-[#0D3535] group-hover:text-white text-sm leading-snug transition-colors duration-500">{problem.title}</h3>
-                      <span className="text-[11px] font-black text-[#0D3535] group-hover:text-white shrink-0 mt-0.5 tabular-nums transition-colors duration-500">
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
+              {problems.map((problem, i) => {
+                const isActive = activeProblem === i;
+                return (
+                  <FadeIn key={i} delay={0.06 * i} className="h-full">
+                    <div
+                      ref={(el) => { problemRefs.current[i] = el; }}
+                      onMouseEnter={() => { if (!isMobile) setActiveProblem(i); }}
+                      onMouseLeave={() => { if (!isMobile) setActiveProblem(null); }}
+                      className={cn(
+                        "rounded-2xl p-5 h-full border transition-all duration-500 cursor-default",
+                        isActive ? "bg-[#0D3535] border-[#0D3535] shadow-lg" : "bg-[#E8E5DF] border-[#CCCAC3]"
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <h3 className={cn("font-bold text-sm leading-snug transition-colors duration-500", isActive ? "text-white" : "text-[#0D3535]")}>{problem.title}</h3>
+                        <span className={cn("text-[11px] font-black shrink-0 mt-0.5 tabular-nums transition-colors duration-500", isActive ? "text-white" : "text-[#0D3535]")}>
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
+                      </div>
+                      <ul className="space-y-2">
+                        {problem.points.map((pt, j) => (
+                          <li key={j} className={cn("flex items-start gap-2.5 text-sm leading-snug transition-colors duration-500", isActive ? "text-white/85" : "text-gray-800")}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#C8A043] shrink-0 mt-1.5" />
+                            {pt}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                    <ul className="space-y-2">
-                      {problem.points.map((pt, j) => (
-                        <li key={j} className="flex items-start gap-2.5 text-sm text-gray-800 group-hover:text-white/85 leading-snug transition-colors duration-500">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#C8A043] shrink-0 mt-1.5" />
-                          {pt}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </FadeIn>
-              ))}
+                  </FadeIn>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -826,61 +923,56 @@ export default function Home() {
             </FadeIn>
 
             <div className="grid md:grid-cols-2 gap-5 mb-5">
-              <FadeIn delay={0.1}>
-                <div className="group bg-[#E8E5DF] border border-[#CCCAC3] rounded-2xl p-6 h-full hover:bg-[#0D3535] hover:border-[#0D3535] hover:shadow-lg transition-all duration-500 cursor-default">
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-[#0D3535] group-hover:bg-[#C8A043] border border-[#0D3535] group-hover:border-[#C8A043] flex items-center justify-center shrink-0 transition-colors duration-500">
-                      <span className="text-[#C8A043] group-hover:text-[#0D3535] font-bold text-base transition-colors duration-500">॥</span>
+              {[
+                {
+                  icon: "॥",
+                  title: "Ancient Indian Business Wisdom",
+                  sub: "Built on principles that have created strong and respected businesses for generations",
+                  points: ["Trust and long-term thinking", "Discipline and commitment", "Care for all stakeholders"],
+                  close: "Ancient Indian Business Wisdom builds the foundation for strong and stable growth",
+                },
+                {
+                  icon: "AI",
+                  title: "Latest AI-Driven Tools and Systems",
+                  sub: "Built to improve speed, visibility, and execution",
+                  points: ["Faster execution with less effort", "Better visibility and decisions", "Intelligent automation where it helps"],
+                  close: "Latest AI-Driven Tools and Systems strengthen execution and improve business speed",
+                },
+              ].map((card, i) => {
+                const isActive = activeDiff === i;
+                return (
+                  <FadeIn key={i} delay={0.1 * (i + 1)}>
+                    <div
+                      ref={(el) => { diffRefs.current[i] = el; }}
+                      onMouseEnter={() => { if (!isMobile) setActiveDiff(i); }}
+                      onMouseLeave={() => { if (!isMobile) setActiveDiff(null); }}
+                      className={cn(
+                        "rounded-2xl p-6 h-full border transition-all duration-500 cursor-default",
+                        isActive ? "bg-[#0D3535] border-[#0D3535] shadow-lg" : "bg-[#E8E5DF] border-[#CCCAC3]"
+                      )}
+                    >
+                      <div className="flex items-start gap-4 mb-4">
+                        <div className={cn("w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 transition-colors duration-500", isActive ? "bg-[#C8A043] border-[#C8A043]" : "bg-[#0D3535] border-[#0D3535]")}>
+                          <span className={cn("font-bold text-base transition-colors duration-500", isActive ? "text-[#0D3535]" : "text-[#C8A043]")}>{card.icon}</span>
+                        </div>
+                        <div>
+                          <h3 className={cn("font-bold text-base leading-snug transition-colors duration-500", isActive ? "text-white" : "text-[#0D3535]")}>{card.title}</h3>
+                          <p className={cn("text-xs mt-1 transition-colors duration-500", isActive ? "text-white/80" : "text-gray-800")}>{card.sub}</p>
+                        </div>
+                      </div>
+                      <ul className="space-y-2 mb-5">
+                        {card.points.map((pt) => (
+                          <li key={pt} className={cn("flex items-center gap-2 text-sm transition-colors duration-500", isActive ? "text-white/85" : "text-gray-800")}>
+                            <span className={cn("w-1 h-1 rounded-full shrink-0 transition-colors duration-500", isActive ? "bg-[#C8A043]" : "bg-[#0D3535]")} />
+                            {pt}
+                          </li>
+                        ))}
+                      </ul>
+                      <p className={cn("text-sm font-semibold border-t pt-4 leading-relaxed transition-colors duration-500", isActive ? "text-white border-white/20" : "text-[#0D3535] border-[#C8C5BE]")}>{card.close}</p>
                     </div>
-                    <div>
-                      <h3 className="font-bold text-[#0D3535] group-hover:text-white text-base leading-snug transition-colors duration-500">
-                        Ancient Indian Business Wisdom
-                      </h3>
-                      <p className="text-xs text-gray-800 group-hover:text-white/80 mt-1 transition-colors duration-500">
-                        Built on principles that have created strong and respected businesses for generations
-                      </p>
-                    </div>
-                  </div>
-                  <ul className="space-y-2 mb-5">
-                    {["Trust and long-term thinking", "Discipline and commitment", "Care for all stakeholders"].map((pt) => (
-                      <li key={pt} className="flex items-center gap-2 text-sm text-gray-800 group-hover:text-white/85 transition-colors duration-500">
-                        <span className="w-1 h-1 rounded-full bg-[#0D3535] group-hover:bg-[#C8A043] shrink-0 transition-colors duration-500" />
-                        {pt}
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="text-sm text-[#0D3535] group-hover:text-white font-semibold border-t border-[#C8C5BE] group-hover:border-white/20 pt-4 leading-relaxed transition-colors duration-500">
-                    Ancient Indian Business Wisdom builds the foundation for strong and stable growth
-                  </p>
-                </div>
-              </FadeIn>
-
-              <FadeIn delay={0.2}>
-                <div className="group bg-[#E8E5DF] border border-[#CCCAC3] rounded-2xl p-6 h-full hover:bg-[#0D3535] hover:border-[#0D3535] hover:shadow-lg transition-all duration-500 cursor-default">
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-[#0D3535] group-hover:bg-[#C8A043] border border-[#0D3535] group-hover:border-[#C8A043] flex items-center justify-center shrink-0 transition-colors duration-500">
-                      <span className="text-[#C8A043] group-hover:text-[#0D3535] font-bold text-base transition-colors duration-500">AI</span>
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-[#0D3535] group-hover:text-white text-base leading-snug transition-colors duration-500">
-                        Latest AI-Driven Tools and Systems
-                      </h3>
-                      <p className="text-xs text-gray-800 group-hover:text-white/80 mt-1 transition-colors duration-500">Built to improve speed, visibility, and execution</p>
-                    </div>
-                  </div>
-                  <ul className="space-y-2 mb-5">
-                    {["Faster execution with less effort", "Better visibility and decisions", "Intelligent automation where it helps"].map((pt) => (
-                      <li key={pt} className="flex items-center gap-2 text-sm text-gray-800 group-hover:text-white/85 transition-colors duration-500">
-                        <span className="w-1 h-1 rounded-full bg-[#0D3535] group-hover:bg-[#C8A043] shrink-0 transition-colors duration-500" />
-                        {pt}
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="text-sm text-[#0D3535] group-hover:text-white font-semibold border-t border-[#C8C5BE] group-hover:border-white/20 pt-4 leading-relaxed transition-colors duration-500">
-                    Latest AI-Driven Tools and Systems strengthen execution and improve business speed
-                  </p>
-                </div>
-              </FadeIn>
+                  </FadeIn>
+                );
+              })}
             </div>
 
             <FadeIn delay={0.3}>
@@ -931,26 +1023,37 @@ export default function Home() {
             </FadeIn>
 
             <div className="grid sm:grid-cols-2 gap-4 mb-7">
-              {outcomes.map((outcome, i) => (
-                <FadeIn key={i} delay={0.06 * i} className="h-full">
-                  <div className="group bg-[#E8E5DF] border border-[#CCCAC3] rounded-2xl p-5 h-full hover:bg-[#C8A043] hover:border-[#C8A043] hover:shadow-lg transition-all duration-500 cursor-default">
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <h3 className="font-bold text-[#0D3535] text-sm leading-snug transition-colors duration-500">{outcome.title}</h3>
-                      <span className="text-xs font-black text-[#0D3535] shrink-0 tabular-nums transition-colors duration-500">
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
+              {outcomes.map((outcome, i) => {
+                const isActive = activeOutcome === i;
+                return (
+                  <FadeIn key={i} delay={0.06 * i} className="h-full">
+                    <div
+                      ref={(el) => { outcomeRefs.current[i] = el; }}
+                      onMouseEnter={() => { if (!isMobile) setActiveOutcome(i); }}
+                      onMouseLeave={() => { if (!isMobile) setActiveOutcome(null); }}
+                      className={cn(
+                        "rounded-2xl p-5 h-full border transition-all duration-500 cursor-default",
+                        isActive ? "bg-[#C8A043] border-[#C8A043] shadow-lg" : "bg-[#E8E5DF] border-[#CCCAC3]"
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <h3 className="font-bold text-[#0D3535] text-sm leading-snug transition-colors duration-500">{outcome.title}</h3>
+                        <span className="text-xs font-black text-[#0D3535] shrink-0 tabular-nums transition-colors duration-500">
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
+                      </div>
+                      <ul className="space-y-1.5">
+                        {outcome.points.map((pt, j) => (
+                          <li key={j} className="flex items-start gap-2 text-xs text-gray-800 leading-relaxed transition-colors duration-500">
+                            <span className="w-1 h-1 rounded-full bg-[#0D3535] shrink-0 mt-1.5" />
+                            {pt}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                    <ul className="space-y-1.5">
-                      {outcome.points.map((pt, j) => (
-                        <li key={j} className="flex items-start gap-2 text-xs text-gray-800 leading-relaxed transition-colors duration-500">
-                          <span className="w-1 h-1 rounded-full bg-[#0D3535] group-hover:bg-[#0D3535] shrink-0 mt-1.5" />
-                          {pt}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </FadeIn>
-              ))}
+                  </FadeIn>
+                );
+              })}
             </div>
 
             <FadeIn delay={0.5}>

@@ -9,7 +9,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!name || !whatsapp || !email) {
     return res.status(400).json({ error: "Name, WhatsApp and email are required" });
   }
-  const qty = Math.max(1, Math.min(10, parseInt(quantity, 10) || 1));
+  const qty = Math.max(1, Math.min(7, parseInt(quantity, 10) || 1));
 
   console.log("KEY_ID loaded:", process.env.RAZORPAY_KEY_ID);
   console.log("SECRET loaded:", process.env.RAZORPAY_KEY_SECRET ? "YES (length " + process.env.RAZORPAY_KEY_SECRET.length + ")" : "MISSING");
