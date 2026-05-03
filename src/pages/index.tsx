@@ -104,6 +104,7 @@ export default function Home() {
   const [activeOutcome, setActiveOutcome] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const isScrollingRef = useRef(false);
+  const touchStartYRef = useRef(0);
   const layerRefs = useRef<(HTMLDivElement | null)[]>(Array(LAYERS_COUNT).fill(null));
   const ratiosRef = useRef<number[]>(Array(LAYERS_COUNT).fill(0));
   const problemRefs = useRef<(HTMLDivElement | null)[]>(Array(PROBLEMS_COUNT).fill(null));
@@ -121,8 +122,15 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const onTouchStart = () => { isScrollingRef.current = false; };
-    const onTouchMove = () => { isScrollingRef.current = true; };
+    const onTouchStart = (e: TouchEvent) => {
+      isScrollingRef.current = false;
+      touchStartYRef.current = e.touches[0].clientY;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (Math.abs(e.touches[0].clientY - touchStartYRef.current) > 12) {
+        isScrollingRef.current = true;
+      }
+    };
     window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchmove", onTouchMove, { passive: true });
     return () => {
@@ -371,6 +379,10 @@ export default function Home() {
         <title>Growth by Design — Webinar Registration</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="description" content="Join Shri Rakesh Jain's live Growth by Design Masterclass. Register for ₹99. Limited seats." />
+        <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64x64.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <meta name="msapplication-TileImage" content="/mstile-144x144.png" />
+        <link rel="shortcut icon" href="/favicon.ico" />
       </Head>
 
       <div className="min-h-screen bg-[#F8F7F4]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -849,45 +861,25 @@ export default function Home() {
                       onMouseEnter={() => { if (!isMobile) setActiveLayer(i); }}
                       onMouseLeave={() => { if (!isMobile) setActiveLayer(null); }}
                       className={cn(
-                        "group rounded-2xl p-5 h-full flex flex-col cursor-default border transition-all duration-500",
-                        isActive
-                          ? "bg-[#0D3535] border-[#0D3535] shadow-lg"
-                          : "bg-[#E8E5DF] border-[#CCCAC3] hover:bg-[#0D3535] hover:border-[#0D3535] hover:shadow-lg"
+                        "rounded-2xl p-5 h-full flex flex-col cursor-default border transition-all duration-500",
+                        isActive ? "bg-[#0D3535] border-[#0D3535] shadow-lg" : "bg-[#E8E5DF] border-[#CCCAC3]"
                       )}
                     >
                       <div className="flex items-center gap-2 mb-3">
-                        <span className={cn("text-xs font-black transition-colors duration-500", isActive ? "text-white" : "text-[#0D3535] group-hover:text-white")}>{layer.num}</span>
-                        <div className={cn(
-                          "h-px flex-1 transition-colors duration-500",
-                          isActive ? "bg-[#C8A043]/50" : "bg-[#0D3535]/40 group-hover:bg-[#C8A043]/50"
-                        )} />
+                        <span className={cn("text-xs font-black transition-colors duration-500", isActive ? "text-white" : "text-[#0D3535]")}>{layer.num}</span>
+                        <div className={cn("h-px flex-1 transition-colors duration-500", isActive ? "bg-[#C8A043]/50" : "bg-[#0D3535]/40")} />
                       </div>
-                      <h3 className={cn(
-                        "font-bold text-sm leading-snug mb-1.5 transition-colors duration-500",
-                        isActive ? "text-white" : "text-[#0D3535] group-hover:text-white"
-                      )}>
+                      <h3 className={cn("font-bold text-sm leading-snug mb-1.5 transition-colors duration-500", isActive ? "text-white" : "text-[#0D3535]")}>
                         {layer.title}
                       </h3>
-                      <p className={cn(
-                        "text-xs flex-1 mb-4 leading-relaxed transition-colors duration-500",
-                        isActive ? "text-white/85" : "text-gray-800 group-hover:text-white/85"
-                      )}>
+                      <p className={cn("text-xs flex-1 mb-4 leading-relaxed transition-colors duration-500", isActive ? "text-white/85" : "text-gray-800")}>
                         {layer.desc}
                       </p>
-                      <div className={cn(
-                        "border-t pt-3 mt-auto transition-colors duration-500",
-                        isActive ? "border-[#C8A043]/30" : "border-[#BDBAB2] group-hover:border-[#C8A043]/30"
-                      )}>
-                        <p className={cn(
-                          "text-[10px] font-bold uppercase tracking-widest mb-1 transition-colors duration-500",
-                          isActive ? "text-[#C8A043]" : "text-[#0D3535] group-hover:text-[#C8A043]"
-                        )}>
+                      <div className={cn("border-t pt-3 mt-auto transition-colors duration-500", isActive ? "border-[#C8A043]/30" : "border-[#BDBAB2]")}>
+                        <p className={cn("text-[10px] font-bold uppercase tracking-widest mb-1 transition-colors duration-500", isActive ? "text-[#C8A043]" : "text-[#0D3535]")}>
                           The outcome
                         </p>
-                        <p className={cn(
-                          "text-sm font-semibold leading-snug transition-colors duration-500",
-                          isActive ? "text-white" : "text-[#0D3535] group-hover:text-white"
-                        )}>
+                        <p className={cn("text-sm font-semibold leading-snug transition-colors duration-500", isActive ? "text-white" : "text-[#0D3535]")}>
                           {layer.close}
                         </p>
                       </div>
