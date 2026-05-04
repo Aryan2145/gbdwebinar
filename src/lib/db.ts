@@ -6,7 +6,7 @@ function getPool() {
   if (!pool) {
     pool = new Pool({
       connectionString: process.env.DATABASE_URL,
-      ssl: process.env.DATABASE_URL?.includes("localhost") || process.env.DATABASE_URL?.includes("127.0.0.1") ? false : { rejectUnauthorized: false },
+      ssl: process.env.DATABASE_URL?.match(/@(localhost|127\.0\.0\.1|db):/) ? false : { rejectUnauthorized: false },
     });
   }
   return pool;
