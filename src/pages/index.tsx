@@ -67,8 +67,9 @@ export default function Home() {
     fetch("/api/sessions")
       .then((r) => r.json())
       .then((data: Session[]) => {
-        setSessions(data);
-        if (data.length > 0) setSelectedSession(data[0].id);
+        const arr = Array.isArray(data) ? data : [];
+        setSessions(arr);
+        if (arr.length > 0) setSelectedSession(arr[0].id);
       })
       .catch(() => {});
   }, []);
